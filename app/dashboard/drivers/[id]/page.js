@@ -58,7 +58,7 @@ export default function DriverDetailPage({ params }) {
   async function fetchDriver() {
     try {
       const { data, error } = await supabase
-        .from("delivery_personnel")
+        .from("users")
         .select("*")
         .eq("id", driverId)
         .single();
@@ -78,13 +78,11 @@ export default function DriverDetailPage({ params }) {
 
     try {
       if (driverId === "new") {
-        const { error } = await supabase
-          .from("delivery_personnel")
-          .insert([driver]);
+        const { error } = await supabase.from("users").insert([driver]);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("delivery_personnel")
+          .from("users")
           .update(driver)
           .eq("id", driverId);
         if (error) throw error;
