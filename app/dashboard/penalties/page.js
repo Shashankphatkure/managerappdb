@@ -51,7 +51,8 @@ export default function PenaltiesPage() {
 
   async function fetchPenalties() {
     try {
-      const { data, error } = await supabase
+      // First, get all penalties
+      const { data: penaltiesData, error: penaltiesError } = await supabase
         .from("penalties")
         .select(
           `
@@ -66,8 +67,24 @@ export default function PenaltiesPage() {
         )
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setPenalties(data || []);
+      if (penaltiesError) throw penaltiesError;
+
+      // Then, get all drivers involved in these penalties
+      const driverIds = [...new Set(penaltiesData.map((p) => p.driver_id))];
+      const { data: driversData, error: driversError } = await supabase
+        .from("users")
+        .select("id, full_name, email")
+        .in("id", driverIds);
+
+      if (driversError) throw driversError;
+
+      // Combine the data
+      const penaltiesWithDrivers = penaltiesData.map((penalty) => ({
+        ...penalty,
+        driver: driversData.find((d) => d.id === penalty.driver_id) || null,
+      }));
+
+      setPenalties(penaltiesWithDrivers);
     } catch (error) {
       console.error("Error fetching penalties:", error);
     } finally {
@@ -238,7 +255,10 @@ export default function PenaltiesPage() {
                   <tr key={penalty.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {penalty.driver_id}
+                        {penalty.driver?.full_name || "Unknown Driver"}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {penalty.driver?.email}
                       </div>
                     </td>
                     <td className="px-6 py-4">

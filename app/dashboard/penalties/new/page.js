@@ -39,7 +39,7 @@ export default function NewPenaltyPage() {
       const [driversResponse, reasonsResponse, ordersResponse] =
         await Promise.all([
           supabase
-            .from("delivery_personnel")
+            .from("users")
             .select("id, full_name, email")
             .eq("is_active", true),
           supabase.from("penalty_reasons").select("*").eq("is_active", true),
@@ -50,11 +50,18 @@ export default function NewPenaltyPage() {
             .limit(50),
         ]);
 
+      console.log("All Users:", driversResponse.data);
+
+      if (driversResponse.error) {
+        throw driversResponse.error;
+      }
+
       setDrivers(driversResponse.data || []);
       setPredefinedReasons(reasonsResponse.data || []);
       setOrders(ordersResponse.data || []);
     } catch (error) {
       console.error("Error fetching initial data:", error);
+      alert("Error loading drivers: " + error.message);
     } finally {
       setLoading(false);
     }
