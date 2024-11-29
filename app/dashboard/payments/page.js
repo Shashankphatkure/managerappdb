@@ -29,7 +29,7 @@ export default function PaymentsPage() {
         .select(
           `
           *,
-          delivery_personnel:delivery_personnel(full_name, email)
+          delivery_personnel:driverid(full_name, email)
         `
         )
         .order("created_at", { ascending: false });

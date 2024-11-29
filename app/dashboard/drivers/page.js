@@ -31,13 +31,24 @@ export default function DriversPage() {
     const loadDrivers = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from("delivery_personnel")
-          .select("*")
+        const { data: usersData, error: usersError } = await supabase
+          .from("users")
+          .select(
+            `
+            id,
+            email,
+            phone,
+            full_name,
+            city,
+            status,
+            created_at
+          `
+          )
           .order("created_at", { ascending: false });
 
-        if (error) throw error;
-        setDrivers(data || []);
+        if (usersError) throw usersError;
+
+        setDrivers(usersData || []);
       } catch (error) {
         console.error("Error fetching drivers:", error);
       } finally {
@@ -117,25 +128,16 @@ export default function DriversPage() {
                 key={driver.id}
                 className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-all duration-200"
               >
-                {/* Driver Info Section */}
                 <div className="p-6">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center space-x-4">
                       <div className="relative">
-                        {driver.photo ? (
-                          <img
-                            className="h-16 w-16 rounded-full object-cover border-2 border-gray-100"
-                            src={driver.photo}
-                            alt={driver.full_name}
-                          />
-                        ) : (
-                          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center border-2 border-gray-100">
-                            <UserGroupIcon className="h-8 w-8 text-blue-500" />
-                          </div>
-                        )}
+                        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center border-2 border-gray-100">
+                          <UserGroupIcon className="h-8 w-8 text-blue-500" />
+                        </div>
                         <span
                           className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white ${
-                            driver.driver_mode === "online"
+                            driver.status === "active"
                               ? "bg-green-400"
                               : "bg-gray-300"
                           }`}
@@ -151,12 +153,12 @@ export default function DriversPage() {
                           </span>
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              driver.is_active
+                              driver.status === "active"
                                 ? "bg-green-100 text-green-800"
                                 : "bg-red-100 text-red-800"
                             }`}
                           >
-                            {driver.is_active ? "Active" : "Inactive"}
+                            {driver.status || "Inactive"}
                           </span>
                         </div>
                       </div>
@@ -177,7 +179,7 @@ export default function DriversPage() {
                     </div>
                   </div>
 
-                  <div className="mt-6 grid grid-cols-3 gap-6">
+                  <div className="mt-6 grid grid-cols-2 gap-6">
                     <div className="space-y-3">
                       <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
                         Contact Info
@@ -197,63 +199,9 @@ export default function DriversPage() {
                         </div>
                       </div>
                     </div>
-
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-                        Vehicle Info
-                      </h4>
-                      <div className="space-y-2">
-                        {driver.vehicle_type && (
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <TruckIcon className="w-4 h-4" />
-                            <span className="text-sm">
-                              {driver.vehicle_type}
-                            </span>
-                          </div>
-                        )}
-                        {driver.vehicle_number && (
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <HashtagIcon className="w-4 h-4" />
-                            <span className="text-sm">
-                              {driver.vehicle_number}
-                            </span>
-                          </div>
-                        )}
-                        {driver.vehicle_color && (
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <SwatchIcon className="w-4 h-4" />
-                            <span className="text-sm">
-                              {driver.vehicle_color}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-                        Current Status
-                      </h4>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                              driver.driver_mode === "online"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {driver.driver_mode === "online"
-                              ? "Online"
-                              : "Offline"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
 
-                {/* Orders Section */}
                 <div className="border-t border-gray-100">
                   <button
                     onClick={() => handleExpandDriver(driver.id)}

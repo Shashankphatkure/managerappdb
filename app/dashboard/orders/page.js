@@ -99,7 +99,7 @@ export default function OrdersPage() {
           `
           *,
           users (full_name, phone),
-          delivery_personnel (full_name, phone)
+          delivery_personnel:driverid(full_name, phone)
         `
         )
         .eq("status", activeTab)
