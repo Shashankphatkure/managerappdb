@@ -39,7 +39,7 @@ export default function NewOrderPage() {
   async function fetchCustomers() {
     try {
       const { data, error } = await supabase
-        .from("users")
+        .from("customers")
         .select("id, full_name, phone, homeaddress, workaddress")
         .order("full_name");
 
@@ -112,7 +112,7 @@ export default function NewOrderPage() {
     setSubmitting(true);
 
     try {
-      // Get customer details
+      // Get customer details from customers table
       const customer = customers.find((c) => c.id === formData.customerid);
 
       // Get store details
@@ -130,21 +130,17 @@ export default function NewOrderPage() {
         status: "pending",
         delivery_notes: formData.delivery_notes || "",
         managernumber: formData.managernumber || "",
-        distance: "", // You might want to calculate this
-        time: "", // You might want to calculate this
+        distance: "",
+        time: "",
       };
 
-      // Insert the order
       const { data, error: orderError } = await supabase
         .from("orders")
         .insert([orderData])
         .select()
         .single();
 
-      if (orderError) {
-        console.error("Supabase error:", orderError);
-        throw orderError;
-      }
+      if (orderError) throw orderError;
 
       router.push("/dashboard/orders");
     } catch (error) {

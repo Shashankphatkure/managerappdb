@@ -98,8 +98,8 @@ export default function OrdersPage() {
         .select(
           `
           *,
-          users (full_name, phone),
-          delivery_personnel:driverid(full_name, phone)
+          customers (full_name, phone),
+          users:driverid (full_name, phone, vehicle_number)
         `
         )
         .eq("status", activeTab)
@@ -256,21 +256,23 @@ export default function OrdersPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <p className="text-sm font-medium text-gray-900">
-                            {order.customername}
+                            {order.customers?.full_name || order.customername}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {order.users?.phone}
+                            {order.customers?.phone}
                           </p>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <p className="text-sm font-medium text-gray-900">
-                            {order.drivername || "Unassigned"}
+                            {order.users?.full_name || "Unassigned"}
                           </p>
-                          {order.delivery_personnel?.phone && (
+                          {order.users?.phone && (
                             <p className="text-sm text-gray-500">
-                              {order.delivery_personnel.phone}
+                              {order.users.phone}
+                              {order.users.vehicle_number &&
+                                ` • ${order.users.vehicle_number}`}
                             </p>
                           )}
                         </div>

@@ -35,8 +35,8 @@ export default function ViewOrderPage({ params }) {
         .select(
           `
           *,
-          users (full_name, phone),
-          delivery_personnel (full_name, phone, vehicle_number, vehicle_type)
+          customers!orders_customerid_fkey (full_name, phone),
+          users!fk_orders_driver (full_name, phone, vehicle_number, vehicle_type)
         `
         )
         .eq("id", id)
@@ -167,7 +167,7 @@ export default function ViewOrderPage({ params }) {
           </div>
           <div className="flex items-center gap-2">
             <PhoneIcon className="w-5 h-5 text-gray-400" />
-            <span>{order.users?.phone}</span>
+            <span>{order.customers?.phone}</span>
           </div>
           <div className="space-y-2">
             <p className="text-sm text-gray-500">Delivery Address</p>
@@ -226,14 +226,13 @@ export default function ViewOrderPage({ params }) {
           </div>
           <div className="flex items-center gap-2">
             <PhoneIcon className="w-5 h-5 text-gray-400" />
-            <span>{order.delivery_personnel?.phone}</span>
+            <span>{order.users?.phone}</span>
           </div>
-          {order.delivery_personnel?.vehicle_type && (
+          {order.users?.vehicle_type && (
             <div className="flex items-center gap-2">
               <TruckIcon className="w-5 h-5 text-gray-400" />
               <span>
-                {order.delivery_personnel.vehicle_type} -{" "}
-                {order.delivery_personnel.vehicle_number}
+                {order.users.vehicle_type} - {order.users.vehicle_number}
               </span>
             </div>
           )}

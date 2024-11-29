@@ -27,20 +27,35 @@ export default function AssignOrderPage({ params }) {
 
   async function fetchOrderDetails() {
     try {
-      const { data, error } = await supabase
+      const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select(
           `
           *,
-          stores (name, address),
-          users (full_name, phone)
+          customers (full_name, phone)
         `
         )
         .eq("id", id)
         .single();
 
-      if (error) throw error;
-      setOrderDetails(data);
+      if (orderError) throw orderError;
+
+      if (orderData.storeid) {
+        const { data: storeData, error: storeError } = await supabase
+          .from("stores")
+          .select("name, address")
+          .eq("id", orderData.storeid)
+          .single();
+
+        if (storeError) throw storeError;
+
+        setOrderDetails({
+          ...orderData,
+          stores: storeData,
+        });
+      } else {
+        setOrderDetails(orderData);
+      }
     } catch (error) {
       console.error("Error:", error);
     }
@@ -49,8 +64,8 @@ export default function AssignOrderPage({ params }) {
   async function fetchDrivers() {
     try {
       const { data, error } = await supabase
-        .from("delivery_personnel")
-        .select("id, full_name, phone, is_active")
+        .from("users")
+        .select("id, full_name, phone, is_active, vehicle_number")
         .eq("is_active", true);
 
       if (error) throw error;
@@ -68,8 +83,8 @@ export default function AssignOrderPage({ params }) {
 
     try {
       const { data: driverData } = await supabase
-        .from("delivery_personnel")
-        .select("full_name, email")
+        .from("users")
+        .select("full_name, email, phone, vehicle_number")
         .eq("id", selectedDriver)
         .single();
 
@@ -133,8 +148,12 @@ export default function AssignOrderPage({ params }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <p className="text-sm text-gray-500">Customer</p>
-                  <p className="font-medium">{orderDetails.users?.full_name}</p>
-                  <p className="text-gray-600">{orderDetails.users?.phone}</p>
+                  <p className="font-medium">
+                    {orderDetails.customers?.full_name}
+                  </p>
+                  <p className="text-gray-600">
+                    {orderDetails.customers?.phone}
+                  </p>
                 </div>
                 <div className="space-y-3">
                   <p className="text-sm text-gray-500">Store</p>
@@ -187,6 +206,7 @@ export default function AssignOrderPage({ params }) {
                     {drivers.map((driver) => (
                       <option key={driver.id} value={driver.id}>
                         {driver.full_name} - {driver.phone}
+                        {driver.vehicle_number && ` (${driver.vehicle_number})`}
                       </option>
                     ))}
                   </select>
