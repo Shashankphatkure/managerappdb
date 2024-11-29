@@ -117,8 +117,20 @@ export default function NewCustomerPage() {
     e.preventDefault();
     setLoading(true);
 
+    const cleanedCustomer = {
+      ...customer,
+      subscriptiondays:
+        customer.subscriptiondays === ""
+          ? null
+          : parseInt(customer.subscriptiondays),
+      subscriptionstart:
+        customer.subscriptionstart === "" ? null : customer.subscriptionstart,
+    };
+
     try {
-      const { error } = await supabase.from("users").insert([customer]);
+      const { error } = await supabase
+        .from("customers")
+        .insert([cleanedCustomer]);
       if (error) throw error;
       router.push("/dashboard/customers");
     } catch (error) {

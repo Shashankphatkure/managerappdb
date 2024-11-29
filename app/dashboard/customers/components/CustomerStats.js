@@ -20,7 +20,7 @@ export default function CustomerStats() {
     try {
       // Get total customers
       const { count: totalCustomers } = await supabase
-        .from("users")
+        .from("customers")
         .select("*", { count: "exact" });
 
       // Get active customers (with orders in last 30 days)
@@ -29,7 +29,7 @@ export default function CustomerStats() {
 
       const { count: activeCustomers } = await supabase
         .from("orders")
-        .select("user_id", { count: "exact", distinct: true })
+        .select("customer_id", { count: "exact", distinct: true })
         .gte("created_at", thirtyDaysAgo.toISOString());
 
       // Get order statistics

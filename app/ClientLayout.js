@@ -54,7 +54,9 @@ export default function ClientLayout({ children }) {
               return (
                 <Link key={item.path} href={item.path}>
                   <div
-                    className={`flex items-center px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 hover:translate-x-1 ${
+                    className={`flex items-center ${
+                      isSidebarOpen ? "px-4" : "justify-center"
+                    } py-3 rounded-lg cursor-pointer transition-all duration-200 hover:translate-x-1 group ${
                       isActive
                         ? "bg-blue-50 text-blue-600"
                         : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
@@ -65,15 +67,17 @@ export default function ClientLayout({ children }) {
                         isActive ? "text-blue-600" : "text-gray-500"
                       }`}
                     />
-                    <span
-                      className={`ml-3 font-medium transition-opacity duration-200 ${
-                        isSidebarOpen ? "opacity-100" : "opacity-0 hidden"
-                      } ${isActive ? "text-blue-600" : "text-gray-600"}`}
-                    >
-                      {item.label}
-                    </span>
+                    {isSidebarOpen && (
+                      <span
+                        className={`ml-3 font-medium ${
+                          isActive ? "text-blue-600" : "text-gray-600"
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    )}
                     {!isSidebarOpen && (
-                      <div className="fixed left-20 bg-gray-900 text-white px-2 py-1 rounded text-sm ml-2 z-50">
+                      <div className="fixed left-20 bg-gray-900 text-white px-2 py-1 rounded text-sm opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200">
                         {item.label}
                       </div>
                     )}

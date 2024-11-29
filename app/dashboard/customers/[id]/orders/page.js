@@ -22,7 +22,7 @@ export default function CustomerOrdersPage({ params }) {
     try {
       // Fetch customer details
       const { data: customerData, error: customerError } = await supabase
-        .from("users")
+        .from("customers")
         .select("*")
         .eq("id", id)
         .single();

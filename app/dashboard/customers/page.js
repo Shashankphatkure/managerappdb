@@ -27,7 +27,7 @@ export default function CustomersPage() {
 
   async function fetchCustomers() {
     try {
-      let query = supabase.from("users").select(`
+      let query = supabase.from("customers").select(`
           *,
           orders:orders(count)
         `);

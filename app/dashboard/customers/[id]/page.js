@@ -19,7 +19,7 @@ export default function CustomerDetailPage({ params }) {
   async function fetchCustomerDetails() {
     try {
       const { data, error } = await supabase
-        .from("users")
+        .from("customers")
         .select(
           `
           *,
@@ -98,6 +98,22 @@ export default function CustomerDetailPage({ params }) {
                 <div>
                   <label className="text-sm text-gray-500">City</label>
                   <p className="text-gray-900">{customer.city || "N/A"}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500">Status</label>
+                  <p className="text-gray-900 capitalize">
+                    {customer.status || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500">
+                    Customer Since
+                  </label>
+                  <p className="text-gray-900">
+                    {customer.created_at
+                      ? new Date(customer.created_at).toLocaleDateString()
+                      : "N/A"}
+                  </p>
                 </div>
               </div>
             </div>
