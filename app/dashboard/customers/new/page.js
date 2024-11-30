@@ -202,89 +202,140 @@ export default function NewCustomerPage() {
         </button>
       }
     >
-      <div className="max-w-3xl mx-auto p-8">
-        <div className="bg-white border border-[#edebe9] rounded-lg shadow-sm p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {formFields.map((field) => (
-              <div key={field.label} className="space-y-2">
-                <label className="text-sm font-semibold text-[#323130]">
-                  {field.label}
-                  {field.required && <span className="text-red-500">*</span>}
-                </label>
-                <div className="relative">
-                  {field.icon && (
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <field.icon className="h-5 w-5 text-[#605e5c]" />
-                    </div>
-                  )}
-                  {field.type === "select" ? (
-                    <select
-                      value={field.value}
-                      onChange={(e) => field.onChange(e.target.value)}
-                      className={`block w-full rounded-md border border-[#8a8886] ${
-                        field.icon ? "pl-10" : "pl-3"
-                      } py-2 text-sm focus:border-[#0078d4] focus:ring-[#0078d4]`}
-                      required={field.required}
-                    >
-                      {field.options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : field.type === "textarea" ? (
-                    <textarea
-                      value={field.value}
-                      onChange={(e) => field.onChange(e.target.value)}
-                      className={`block w-full rounded-md border border-[#8a8886] ${
-                        field.icon ? "pl-10" : "pl-3"
-                      } py-2 text-sm focus:border-[#0078d4] focus:ring-[#0078d4]`}
-                      rows={3}
-                      required={field.required}
-                    />
-                  ) : (
-                    <input
-                      type={field.type}
-                      value={field.value}
-                      onChange={(e) => field.onChange(e.target.value)}
-                      className={`block w-full rounded-md border border-[#8a8886] ${
-                        field.icon ? "pl-10" : "pl-3"
-                      } py-2 text-sm focus:border-[#0078d4] focus:ring-[#0078d4]`}
-                      required={field.required}
-                    />
-                  )}
+      <div className="">
+        <div className="bg-white border border-[#edebe9] rounded-xl shadow-sm">
+          <div className="p-6 border-b border-[#edebe9]">
+            <h2 className="text-lg font-semibold text-[#323130]">
+              Customer Information
+            </h2>
+            <p className="text-sm text-[#605e5c] mt-1">
+              Fill in the information below to{" "}
+              {isEditMode ? "update" : "create"} a customer profile
+            </p>
+          </div>
+
+          <div className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Personal Information Section */}
+              <div className="space-y-6">
+                <h3 className="text-sm font-semibold text-[#323130] uppercase tracking-wider">
+                  Personal Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {formFields.slice(0, 3).map((field) => (
+                    <FormField key={field.label} field={field} />
+                  ))}
                 </div>
               </div>
-            ))}
 
-            <div className="pt-6 border-t border-[#edebe9]">
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/customers")}
-                  className="px-4 py-2 text-sm font-medium text-[#323130] bg-white border border-[#8a8886] rounded-md hover:bg-[#f3f2f1] focus:outline-none focus:ring-2 focus:ring-[#0078d4]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-[#0078d4] border border-transparent rounded-md hover:bg-[#106ebe] focus:outline-none focus:ring-2 focus:ring-[#0078d4] flex items-center gap-2"
-                >
-                  <UserGroupIcon className="w-5 h-5" />
-                  {loading
-                    ? isEditMode
-                      ? "Updating..."
-                      : "Adding..."
-                    : isEditMode
-                    ? "Update Customer"
-                    : "Add Customer"}
-                </button>
+              {/* Address Information Section */}
+              <div className="space-y-6 pt-6 border-t border-[#edebe9]">
+                <h3 className="text-sm font-semibold text-[#323130] uppercase tracking-wider">
+                  Address Information
+                </h3>
+                <div className="grid grid-cols-1 gap-6">
+                  {formFields.slice(3, 6).map((field) => (
+                    <FormField key={field.label} field={field} />
+                  ))}
+                </div>
               </div>
-            </div>
-          </form>
+
+              {/* Additional Information Section */}
+              <div className="space-y-6 pt-6 border-t border-[#edebe9]">
+                <h3 className="text-sm font-semibold text-[#323130] uppercase tracking-wider">
+                  Additional Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {formFields.slice(6).map((field) => (
+                    <FormField key={field.label} field={field} />
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-[#edebe9]">
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => router.push("/dashboard/customers")}
+                    className="px-4 py-2 text-sm font-medium text-[#323130] bg-white border border-[#8a8886] rounded-lg hover:bg-[#f3f2f1] focus:outline-none focus:ring-2 focus:ring-[#0078d4] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-4 py-2 text-sm font-medium text-white bg-[#0078d4] border border-transparent rounded-lg hover:bg-[#106ebe] focus:outline-none focus:ring-2 focus:ring-[#0078d4] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <UserGroupIcon className="w-5 h-5" />
+                    {loading
+                      ? isEditMode
+                        ? "Updating..."
+                        : "Adding..."
+                      : isEditMode
+                      ? "Update Customer"
+                      : "Add Customer"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+// New FormField component for better organization
+function FormField({ field }) {
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-semibold text-[#323130] flex items-center gap-1">
+        {field.label}
+        {field.required && <span className="text-red-500">*</span>}
+      </label>
+      <div className="relative">
+        {field.icon && (
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <field.icon className="h-5 w-5 text-[#605e5c]" />
+          </div>
+        )}
+        {field.type === "select" ? (
+          <select
+            value={field.value}
+            onChange={(e) => field.onChange(e.target.value)}
+            className={`block w-full rounded-lg border border-[#8a8886] ${
+              field.icon ? "pl-10" : "pl-3"
+            } py-2.5 text-sm focus:border-[#0078d4] focus:ring-[#0078d4] bg-white transition-colors`}
+            required={field.required}
+          >
+            {field.options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        ) : field.type === "textarea" ? (
+          <textarea
+            value={field.value}
+            onChange={(e) => field.onChange(e.target.value)}
+            className={`block w-full rounded-lg border border-[#8a8886] ${
+              field.icon ? "pl-10" : "pl-3"
+            } py-2.5 text-sm focus:border-[#0078d4] focus:ring-[#0078d4] transition-colors`}
+            rows={3}
+            required={field.required}
+          />
+        ) : (
+          <input
+            type={field.type}
+            value={field.value}
+            onChange={(e) => field.onChange(e.target.value)}
+            className={`block w-full rounded-lg border border-[#8a8886] ${
+              field.icon ? "pl-10" : "pl-3"
+            } py-2.5 text-sm focus:border-[#0078d4] focus:ring-[#0078d4] transition-colors`}
+            required={field.required}
+          />
+        )}
+      </div>
+    </div>
   );
 }
