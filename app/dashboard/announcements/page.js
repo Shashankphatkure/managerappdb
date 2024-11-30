@@ -1,12 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 export default function SendNotification() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [result, setResult] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      const { data, error } = await supabase
+        .from("announcements")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (!error) {
+        setAnnouncements(data);
+      }
+    };
+
+    fetchAnnouncements();
+  }, []);
 
   const sendNotification = async () => {
     setIsSending(true);
@@ -29,6 +52,14 @@ export default function SendNotification() {
       }
 
       setResult("Notification sent successfully!");
+
+      const { data: updatedAnnouncements } = await supabase
+        .from("announcements")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      setAnnouncements(updatedAnnouncements);
     } catch (error) {
       console.error("Error sending notification:", error);
       setResult(`Failed to send notification. Error: ${error.message}`);
@@ -118,6 +149,41 @@ export default function SendNotification() {
               {result}
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="mt-8 max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
+        <div className="p-8">
+          <h2 className="text-2xl font-bold mb-4">Recent Announcements</h2>
+          <div className="space-y-4">
+            {announcements.map((announcement) => (
+              <div key={announcement.id} className="border-b pb-4">
+                <h3 className="font-semibold">{announcement.title}</h3>
+                <p className="text-gray-600">{announcement.message}</p>
+                <div className="mt-2 text-sm">
+                  <span
+                    className={`px-2 py-1 rounded ${
+                      announcement.status === "sent"
+                        ? "bg-green-100 text-green-800"
+                        : announcement.status === "failed"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {announcement.status}
+                  </span>
+                  <span className="ml-2 text-gray-500">
+                    {new Date(announcement.sent_at).toLocaleString()}
+                  </span>
+                  {announcement.sent_count && (
+                    <span className="ml-2 text-gray-500">
+                      Sent to {announcement.sent_count} recipients
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

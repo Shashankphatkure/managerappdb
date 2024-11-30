@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+
   console.log("API route called");
 
   try {
@@ -43,8 +49,44 @@ export async function POST(req) {
       throw new Error(data.error || "OneSignal API request failed");
     }
 
-    return NextResponse.json({ success: true, data });
+    // Create announcement record with 'processing' status
+    const { data: announcement, error: dbError } = await supabase
+      .from("announcements")
+      .insert({
+        title,
+        message: description,
+        sent_at: new Date().toISOString(),
+        status: "processing",
+        sent_by: req.auth?.userId, // If you have auth context
+      })
+      .select()
+      .single();
+
+    if (dbError) throw dbError;
+
+    // Update announcement status on success
+    await supabase
+      .from("announcements")
+      .update({
+        status: "sent",
+        sent_count: data.recipients || 0,
+      })
+      .eq("id", announcement.id);
+
+    return NextResponse.json({
+      success: true,
+      data,
+      announcementId: announcement.id,
+    });
   } catch (error) {
+    // If there's an announcement in progress, mark it as failed
+    if (announcement?.id) {
+      await supabase
+        .from("announcements")
+        .update({ status: "failed" })
+        .eq("id", announcement.id);
+    }
+
     console.error("Detailed error:", error);
     return NextResponse.json(
       {
