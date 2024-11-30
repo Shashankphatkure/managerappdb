@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import DashboardLayout from "../../components/DashboardLayout";
@@ -14,11 +14,9 @@ import {
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
 
-export default function NewCustomerPage() {
+// Create a wrapper component for the form
+function CustomerForm({ customerId, isEditMode }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const customerId = searchParams.get("id");
-  const isEditMode = !!customerId;
   const supabase = createClientComponentClient();
   const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState({
@@ -187,6 +185,95 @@ export default function NewCustomerPage() {
   }
 
   return (
+    <div className="">
+      <div className="bg-white border border-[#edebe9] rounded-xl shadow-sm">
+        <div className="p-6 border-b border-[#edebe9]">
+          <h2 className="text-lg font-semibold text-[#323130]">
+            Customer Information
+          </h2>
+          <p className="text-sm text-[#605e5c] mt-1">
+            Fill in the information below to {isEditMode ? "update" : "create"}{" "}
+            a customer profile
+          </p>
+        </div>
+
+        <div className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Personal Information Section */}
+            <div className="space-y-6">
+              <h3 className="text-sm font-semibold text-[#323130] uppercase tracking-wider">
+                Personal Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {formFields.slice(0, 3).map((field) => (
+                  <FormField key={field.label} field={field} />
+                ))}
+              </div>
+            </div>
+
+            {/* Address Information Section */}
+            <div className="space-y-6 pt-6 border-t border-[#edebe9]">
+              <h3 className="text-sm font-semibold text-[#323130] uppercase tracking-wider">
+                Address Information
+              </h3>
+              <div className="grid grid-cols-1 gap-6">
+                {formFields.slice(3, 6).map((field) => (
+                  <FormField key={field.label} field={field} />
+                ))}
+              </div>
+            </div>
+
+            {/* Additional Information Section */}
+            <div className="space-y-6 pt-6 border-t border-[#edebe9]">
+              <h3 className="text-sm font-semibold text-[#323130] uppercase tracking-wider">
+                Additional Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {formFields.slice(6).map((field) => (
+                  <FormField key={field.label} field={field} />
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-[#edebe9]">
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push("/dashboard/customers")}
+                  className="px-4 py-2 text-sm font-medium text-[#323130] bg-white border border-[#8a8886] rounded-lg hover:bg-[#f3f2f1] focus:outline-none focus:ring-2 focus:ring-[#0078d4] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 text-sm font-medium text-white bg-[#0078d4] border border-transparent rounded-lg hover:bg-[#106ebe] focus:outline-none focus:ring-2 focus:ring-[#0078d4] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <UserGroupIcon className="w-5 h-5" />
+                  {loading
+                    ? isEditMode
+                      ? "Updating..."
+                      : "Adding..."
+                    : isEditMode
+                    ? "Update Customer"
+                    : "Add Customer"}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main page component
+export default function NewCustomerPage() {
+  const searchParams = useSearchParams();
+  const customerId = searchParams.get("id");
+  const isEditMode = !!customerId;
+
+  return (
     <DashboardLayout
       title={isEditMode ? "Edit Customer" : "Add New Customer"}
       subtitle={
@@ -202,85 +289,22 @@ export default function NewCustomerPage() {
         </button>
       }
     >
-      <div className="">
-        <div className="bg-white border border-[#edebe9] rounded-xl shadow-sm">
-          <div className="p-6 border-b border-[#edebe9]">
-            <h2 className="text-lg font-semibold text-[#323130]">
-              Customer Information
-            </h2>
-            <p className="text-sm text-[#605e5c] mt-1">
-              Fill in the information below to{" "}
-              {isEditMode ? "update" : "create"} a customer profile
-            </p>
+      <Suspense
+        fallback={
+          <div className="max-w-4xl mx-auto p-6">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+              <div className="space-y-3">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+              </div>
+            </div>
           </div>
-
-          <div className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Personal Information Section */}
-              <div className="space-y-6">
-                <h3 className="text-sm font-semibold text-[#323130] uppercase tracking-wider">
-                  Personal Details
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {formFields.slice(0, 3).map((field) => (
-                    <FormField key={field.label} field={field} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Address Information Section */}
-              <div className="space-y-6 pt-6 border-t border-[#edebe9]">
-                <h3 className="text-sm font-semibold text-[#323130] uppercase tracking-wider">
-                  Address Information
-                </h3>
-                <div className="grid grid-cols-1 gap-6">
-                  {formFields.slice(3, 6).map((field) => (
-                    <FormField key={field.label} field={field} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Additional Information Section */}
-              <div className="space-y-6 pt-6 border-t border-[#edebe9]">
-                <h3 className="text-sm font-semibold text-[#323130] uppercase tracking-wider">
-                  Additional Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {formFields.slice(6).map((field) => (
-                    <FormField key={field.label} field={field} />
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-[#edebe9]">
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => router.push("/dashboard/customers")}
-                    className="px-4 py-2 text-sm font-medium text-[#323130] bg-white border border-[#8a8886] rounded-lg hover:bg-[#f3f2f1] focus:outline-none focus:ring-2 focus:ring-[#0078d4] transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 text-sm font-medium text-white bg-[#0078d4] border border-transparent rounded-lg hover:bg-[#106ebe] focus:outline-none focus:ring-2 focus:ring-[#0078d4] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <UserGroupIcon className="w-5 h-5" />
-                    {loading
-                      ? isEditMode
-                        ? "Updating..."
-                        : "Adding..."
-                      : isEditMode
-                      ? "Update Customer"
-                      : "Add Customer"}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
+        }
+      >
+        <CustomerForm customerId={customerId} isEditMode={isEditMode} />
+      </Suspense>
     </DashboardLayout>
   );
 }
