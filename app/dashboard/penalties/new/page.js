@@ -82,36 +82,51 @@ export default function NewPenaltyPage() {
 
   async function fetchInitialData() {
     try {
-      const [driversResponse, reasonsResponse, ordersResponse] =
-        await Promise.all([
-          supabase
-            .from("users")
-            .select("id, full_name, email")
-            .eq("is_active", true),
-          supabase.from("penalty_reasons").select("*").eq("is_active", true),
-          supabase
-            .from("orders")
-            .select("id, created_at, status, customername")
-            .order("created_at", { ascending: false })
-            .limit(50),
-        ]);
+      const [driversResponse, reasonsResponse] = await Promise.all([
+        supabase
+          .from("users")
+          .select("id, full_name, email")
+          .eq("is_active", true),
+        supabase.from("penalty_reasons").select("*").eq("is_active", true),
+      ]);
 
-      console.log("All Users:", driversResponse.data);
-
-      if (driversResponse.error) {
-        throw driversResponse.error;
-      }
+      if (driversResponse.error) throw driversResponse.error;
 
       setDrivers(driversResponse.data || []);
       setPredefinedReasons(reasonsResponse.data || []);
-      setOrders(ordersResponse.data || []);
     } catch (error) {
       console.error("Error fetching initial data:", error);
-      alert("Error loading drivers: " + error.message);
+      alert("Error loading data: " + error.message);
     } finally {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    async function fetchDriverOrders() {
+      if (!penalty.driver_id) {
+        setOrders([]);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("id, created_at, status, customername")
+          .eq("driverid", penalty.driver_id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        if (error) throw error;
+        setOrders(data || []);
+      } catch (error) {
+        console.error("Error fetching driver orders:", error);
+        alert("Error loading orders: " + error.message);
+      }
+    }
+
+    fetchDriverOrders();
+  }, [penalty.driver_id, supabase]);
 
   useEffect(() => {
     if (penalty.predefined_reason_id && penalty.reason_type === "predefined") {
