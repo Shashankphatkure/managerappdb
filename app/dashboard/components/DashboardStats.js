@@ -47,14 +47,14 @@ export default function DashboardStats() {
         penaltiesCount,
       ] = await Promise.all([
         supabase
-          .from("delivery_personnel")
+          .from("users")
           .select("*", { count: "exact" })
           .eq("is_active", true),
         supabase
           .from("orders")
           .select("*", { count: "exact" })
           .eq("status", "pending"),
-        supabase.from("users").select("*", { count: "exact" }),
+        supabase.from("customers").select("*", { count: "exact" }),
         supabase
           .from("driver_payments")
           .select("*", { count: "exact" })
