@@ -136,9 +136,6 @@ export default function CustomersPage() {
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Subscription
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Total Orders
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -165,18 +162,6 @@ export default function CustomersPage() {
                       >
                         {customer.status || "N/A"}
                       </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {customer.subscriptionstart ? (
-                        <span>
-                          {new Date(
-                            customer.subscriptionstart
-                          ).toLocaleDateString()}
-                          ({customer.subscriptiondays} days)
-                        </span>
-                      ) : (
-                        "No subscription"
-                      )}
                     </td>
                     <td className="px-6 py-4">{customer.orders.length}</td>
                     <td className="px-6 py-4">
