@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  PlusIcon,
   ChartBarIcon,
   TruckIcon,
   ShoppingBagIcon,
@@ -22,6 +23,12 @@ export default function ClientLayout({ children }) {
   const pathname = usePathname();
 
   const menuItems = [
+    {
+      path: "/dashboard/orders/new",
+      label: "New Order",
+      icon: PlusIcon,
+      priority: true,
+    },
     { path: "/dashboard", label: "Dashboard", icon: ChartBarIcon },
     { path: "/dashboard/drivers", label: "Drivers", icon: TruckIcon },
     { path: "/dashboard/orders", label: "Orders", icon: ShoppingBagIcon },
@@ -59,12 +66,16 @@ export default function ClientLayout({ children }) {
                     } py-3 rounded-lg cursor-pointer transition-all duration-200 hover:translate-x-1 group ${
                       isActive
                         ? "bg-blue-50 text-blue-600"
+                        : item.priority
+                        ? "text-blue-600 hover:bg-blue-50"
                         : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
                     }`}
                   >
                     <item.icon
                       className={`w-5 h-5 ${
-                        isActive ? "text-blue-600" : "text-gray-500"
+                        isActive || item.priority
+                          ? "text-blue-600"
+                          : "text-gray-500"
                       }`}
                     />
                     {isSidebarOpen && (
