@@ -16,8 +16,6 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: "",
-    orderCount: "all",
-    sortBy: "created_at",
   });
   const supabase = createClientComponentClient();
 
@@ -39,15 +37,8 @@ export default function CustomersPage() {
         );
       }
 
-      // Apply order count filter
-      if (filters.orderCount === "none") {
-        query = query.eq("orders.count", 0);
-      } else if (filters.orderCount === "active") {
-        query = query.gt("orders.count", 0);
-      }
-
-      // Apply sorting
-      query = query.order(filters.sortBy, { ascending: false });
+      // Default sorting by created_at
+      query = query.order("created_at", { ascending: false });
 
       const { data, error } = await query;
 
@@ -78,28 +69,6 @@ export default function CustomersPage() {
               }
               className="p-2 border rounded"
             />
-            <select
-              value={filters.orderCount}
-              onChange={(e) =>
-                setFilters({ ...filters, orderCount: e.target.value })
-              }
-              className="p-2 border rounded"
-            >
-              <option value="all">All Customers</option>
-              <option value="active">With Orders</option>
-              <option value="none">No Orders</option>
-            </select>
-            <select
-              value={filters.sortBy}
-              onChange={(e) =>
-                setFilters({ ...filters, sortBy: e.target.value })
-              }
-              className="p-2 border rounded"
-            >
-              <option value="created_at">Join Date</option>
-              <option value="full_name">Name</option>
-              <option value="email">Email</option>
-            </select>
           </div>
           <Link
             href="/dashboard/customers/new"
