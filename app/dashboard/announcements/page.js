@@ -1,7 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import DashboardLayout from "../components/DashboardLayout";
+import {
+  MegaphoneIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon,
+  UserGroupIcon,
+} from "@heroicons/react/24/outline";
+
+const getStatusColor = (status) => {
+  const colors = {
+    sent: "bg-green-100 text-green-800",
+    failed: "bg-red-100 text-red-800",
+    processing: "bg-yellow-100 text-yellow-800",
+  };
+  return colors[status] || "bg-gray-100 text-gray-800";
+};
 
 export default function SendNotification() {
   const [title, setTitle] = useState("");
@@ -9,27 +26,79 @@ export default function SendNotification() {
   const [isSending, setIsSending] = useState(false);
   const [result, setResult] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalSent: 0,
+    totalFailed: 0,
+    totalRecipients: 0,
+    todaysSent: 0,
+  });
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
-    const fetchAnnouncements = async () => {
+    fetchAnnouncements();
+    fetchStats();
+  }, []);
+
+  async function fetchStats() {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Get total sent count
+      const { count: sentCount } = await supabase
+        .from("announcements")
+        .select("*", { count: "exact" })
+        .eq("status", "sent");
+
+      // Get total failed count
+      const { count: failedCount } = await supabase
+        .from("announcements")
+        .select("*", { count: "exact" })
+        .eq("status", "failed");
+
+      // Get today's sent announcements
+      const { data: todayAnnouncements } = await supabase
+        .from("announcements")
+        .select("sent_count")
+        .eq("status", "sent")
+        .gte("created_at", today.toISOString());
+
+      const todaysSent = todayAnnouncements?.length || 0;
+      const totalRecipients =
+        todayAnnouncements?.reduce(
+          (sum, ann) => sum + (ann.sent_count || 0),
+          0
+        ) || 0;
+
+      setStats({
+        totalSent: sentCount || 0,
+        totalFailed: failedCount || 0,
+        totalRecipients,
+        todaysSent,
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  }
+
+  async function fetchAnnouncements() {
+    try {
       const { data, error } = await supabase
         .from("announcements")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(10);
 
-      if (!error) {
-        setAnnouncements(data);
-      }
-    };
-
-    fetchAnnouncements();
-  }, []);
+      if (error) throw error;
+      setAnnouncements(data || []);
+    } catch (error) {
+      console.error("Error fetching announcements:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const sendNotification = async () => {
     setIsSending(true);
@@ -38,28 +107,21 @@ export default function SendNotification() {
     try {
       const response = await fetch("/api/send-notification", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, description }),
       });
 
       const data = await response.json();
-      console.log("API response:", data);
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to send notification");
       }
 
       setResult("Notification sent successfully!");
-
-      const { data: updatedAnnouncements } = await supabase
-        .from("announcements")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      setAnnouncements(updatedAnnouncements);
+      setTitle("");
+      setDescription("");
+      fetchAnnouncements();
+      fetchStats();
     } catch (error) {
       console.error("Error sending notification:", error);
       setResult(`Failed to send notification. Error: ${error.message}`);
@@ -68,13 +130,62 @@ export default function SendNotification() {
     }
   };
 
+  const statsCards = [
+    {
+      title: "Total Sent",
+      value: stats.totalSent,
+      icon: CheckCircleIcon,
+      color: "green",
+    },
+    {
+      title: "Total Failed",
+      value: stats.totalFailed,
+      icon: XCircleIcon,
+      color: "red",
+    },
+    {
+      title: "Today's Sent",
+      value: stats.todaysSent,
+      icon: ClockIcon,
+      color: "blue",
+    },
+    {
+      title: "Total Recipients",
+      value: stats.totalRecipients,
+      icon: UserGroupIcon,
+      color: "purple",
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
-        <div className="p-8">
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-6 text-center">
-            Send Push Notification
-          </h1>
+    <DashboardLayout title="Announcements">
+      <div className="p-6">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {statsCards.map((card) => (
+            <div
+              key={card.title}
+              className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-[#605e5c]">
+                    {card.title}
+                  </p>
+                  <p className="text-2xl font-bold mt-2 text-[#323130]">
+                    {card.value}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-xl bg-${card.color}-50`}>
+                  <card.icon className={`w-6 h-6 text-${card.color}-600`} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Notification Form */}
+        <div className="bg-white rounded-xl shadow-sm mb-8 p-6">
           <div className="space-y-6">
             <div>
               <label
@@ -108,84 +219,120 @@ export default function SendNotification() {
                 placeholder="Enter notification description"
               ></textarea>
             </div>
-            <div>
+            <div className="mt-6">
               <button
                 onClick={sendNotification}
-                disabled={isSending}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isSending || !title || !description}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSending ? (
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                ) : null}
+                <MegaphoneIcon className="w-5 h-5 mr-2" />
                 {isSending ? "Sending..." : "Send Notification"}
               </button>
             </div>
           </div>
           {result && (
             <div
-              className={`mt-6 text-sm ${
-                result.includes("Error") ? "text-red-600" : "text-green-600"
+              className={`mt-4 p-4 rounded-md ${
+                result.includes("Error")
+                  ? "bg-red-50 text-red-700"
+                  : "bg-green-50 text-green-700"
               }`}
             >
               {result}
             </div>
           )}
         </div>
-      </div>
 
-      <div className="mt-8 max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
-        <div className="p-8">
-          <h2 className="text-2xl font-bold mb-4">Recent Announcements</h2>
-          <div className="space-y-4">
-            {announcements.map((announcement) => (
-              <div key={announcement.id} className="border-b pb-4">
-                <h3 className="font-semibold">{announcement.title}</h3>
-                <p className="text-gray-600">{announcement.message}</p>
-                <div className="mt-2 text-sm">
-                  <span
-                    className={`px-2 py-1 rounded ${
-                      announcement.status === "sent"
-                        ? "bg-green-100 text-green-800"
-                        : announcement.status === "failed"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {announcement.status}
-                  </span>
-                  <span className="ml-2 text-gray-500">
-                    {new Date(announcement.sent_at).toLocaleString()}
-                  </span>
-                  {announcement.sent_count && (
-                    <span className="ml-2 text-gray-500">
-                      Sent to {announcement.sent_count} recipients
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+        {/* Announcements Table */}
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Recent Announcements
+            </h2>
           </div>
+          {loading ? (
+            <div className="p-4 space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className="animate-pulse h-16 bg-[#f3f2f1] rounded-lg"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-[#edebe9]">
+                <thead>
+                  <tr className="bg-[#f8f8f8]">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Title
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Message
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sent At
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Recipients
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {announcements.map((announcement) => (
+                    <tr key={announcement.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <p className="text-sm font-medium text-gray-900">
+                          {announcement.title}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm text-gray-900 line-clamp-2">
+                          {announcement.message}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <p className="text-sm text-gray-500">
+                          {new Date(announcement.sent_at).toLocaleString()}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <p className="text-sm text-gray-900">
+                          {announcement.sent_count || 0}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                            announcement.status
+                          )}`}
+                        >
+                          {announcement.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {announcements.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <MegaphoneIcon className="mx-auto h-12 w-12 text-gray-300" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">
+                No announcements
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Start by creating a new announcement.
+              </p>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

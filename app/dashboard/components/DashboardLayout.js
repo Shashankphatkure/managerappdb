@@ -8,7 +8,7 @@ export default function DashboardLayout({ children, title, actions }) {
         {actions && <div>{actions}</div>}
       </div>
 
-      <div className="rounded-xl bg-white border border-[#edebe9] shadow-lg">
+      <div className="rounded-xl bg-[#fafafa] border border-[#edebe9] shadow-lg">
         {children}
       </div>
     </div>
