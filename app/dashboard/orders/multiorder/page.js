@@ -167,7 +167,7 @@ export default function MultiOrderPage() {
 
   return (
     <DashboardLayout title="Create Multi-Order">
-      <div className="p-6">
+      <div className="">
         <div className="bg-white rounded-xl shadow-sm p-6">
           {/* Driver Selection */}
           <div className="mb-8">
