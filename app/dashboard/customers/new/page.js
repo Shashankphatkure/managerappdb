@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import DashboardLayout from "../../components/DashboardLayout";
 import {
   UserGroupIcon,
@@ -16,6 +16,9 @@ import {
 
 export default function NewCustomerPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const customerId = searchParams.get("id");
+  const isEditMode = !!customerId;
   const supabase = createClientComponentClient();
   const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState({
@@ -30,6 +33,30 @@ export default function NewCustomerPage() {
     subscriptiondays: "",
     subscriptionstart: "",
   });
+
+  useEffect(() => {
+    if (isEditMode) {
+      fetchCustomer();
+    }
+  }, [customerId]);
+
+  async function fetchCustomer() {
+    try {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("id", customerId)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setCustomer(data);
+      }
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      alert("Error fetching customer details. Please try again.");
+    }
+  }
 
   const formFields = [
     {
@@ -128,14 +155,32 @@ export default function NewCustomerPage() {
     };
 
     try {
-      const { error } = await supabase
-        .from("customers")
-        .insert([cleanedCustomer]);
+      let error;
+      if (isEditMode) {
+        const { error: updateError } = await supabase
+          .from("customers")
+          .update(cleanedCustomer)
+          .eq("id", customerId);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from("customers")
+          .insert([cleanedCustomer]);
+        error = insertError;
+      }
+
       if (error) throw error;
       router.push("/dashboard/customers");
     } catch (error) {
-      console.error("Error creating customer:", error);
-      alert("Error creating customer. Please try again.");
+      console.error(
+        `Error ${isEditMode ? "updating" : "creating"} customer:`,
+        error
+      );
+      alert(
+        `Error ${
+          isEditMode ? "updating" : "creating"
+        } customer. Please try again.`
+      );
     } finally {
       setLoading(false);
     }
@@ -143,8 +188,10 @@ export default function NewCustomerPage() {
 
   return (
     <DashboardLayout
-      title="Add New Customer"
-      subtitle="Create a new customer profile"
+      title={isEditMode ? "Edit Customer" : "Add New Customer"}
+      subtitle={
+        isEditMode ? "Update customer profile" : "Create a new customer profile"
+      }
       actions={
         <button
           onClick={() => router.push("/dashboard/customers")}
@@ -225,7 +272,13 @@ export default function NewCustomerPage() {
                   className="px-4 py-2 text-sm font-medium text-white bg-[#0078d4] border border-transparent rounded-md hover:bg-[#106ebe] focus:outline-none focus:ring-2 focus:ring-[#0078d4] flex items-center gap-2"
                 >
                   <UserGroupIcon className="w-5 h-5" />
-                  {loading ? "Adding..." : "Add Customer"}
+                  {loading
+                    ? isEditMode
+                      ? "Updating..."
+                      : "Adding..."
+                    : isEditMode
+                    ? "Update Customer"
+                    : "Add Customer"}
                 </button>
               </div>
             </div>

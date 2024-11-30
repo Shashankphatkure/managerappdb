@@ -188,6 +188,12 @@ export default function CustomersPage() {
                           View
                         </Link>
                         <Link
+                          href={`/dashboard/customers/new?id=${customer.id}`}
+                          className="text-yellow-600 hover:text-yellow-900"
+                        >
+                          Edit
+                        </Link>
+                        <Link
                           href={`/dashboard/customers/${customer.id}/orders`}
                           className="text-green-600 hover:text-green-900"
                         >
