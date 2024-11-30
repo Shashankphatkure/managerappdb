@@ -45,6 +45,11 @@ export default function ClientLayout({ children }) {
       label: "Notifications",
       icon: BellIcon,
     },
+    {
+      path: "/dashboard/announcements",
+      label: "Announcements",
+      icon: BellIcon,
+    },
   ];
 
   return (
