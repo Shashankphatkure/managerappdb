@@ -34,6 +34,7 @@ export default function ClientLayout({ children }) {
     { path: "/dashboard/orders", label: "Orders", icon: ShoppingBagIcon },
     { path: "/dashboard/customers", label: "Customers", icon: UserGroupIcon },
     { path: "/dashboard/payments", label: "Payments", icon: BanknotesIcon },
+    { path: "/dashboard/reports", label: "Reports", icon: ChartBarIcon },
     {
       path: "/dashboard/penalties",
       label: "Penalties",
