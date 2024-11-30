@@ -183,20 +183,30 @@ export default function MultiOrderPage() {
 
   async function handleConfirmOrders() {
     try {
-      const orders = optimizedRoutes.map((route) => ({
-        driverid: selectedDriver.id,
-        drivername: selectedDriver.full_name,
-        driveremail: selectedDriver.email,
-        customerid: route.customer.id,
-        customername: route.customer.full_name,
-        status: "pending",
-        payment_status: "pending",
-        start: selectedStore.address,
-        storeid: selectedStore.id,
-        destination: route.customer.homeaddress || "",
-        distance: route.distance,
-        time: route.duration,
-      }));
+      const orders = optimizedRoutes.map((route, index) => {
+        // For first order, start is store address
+        // For subsequent orders, start is previous customer's address
+        const start =
+          index === 0
+            ? selectedStore.address
+            : optimizedRoutes[index - 1].customer.homeaddress;
+
+        return {
+          driverid: selectedDriver.id,
+          drivername: selectedDriver.full_name,
+          driveremail: selectedDriver.email,
+          customerid: route.customer.id,
+          customername: route.customer.full_name,
+          status: "pending",
+          payment_status: "pending",
+          start: start,
+          storeid: selectedStore.id,
+          destination: route.customer.homeaddress || "",
+          distance: route.distance,
+          time: route.duration,
+          delivery_sequence: index + 1, // Add sequence number
+        };
+      });
 
       const { data, error } = await supabase
         .from("orders")
