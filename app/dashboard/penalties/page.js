@@ -123,7 +123,7 @@ export default function PenaltiesPage() {
             recipient_type: "driver",
             recipient_id: penalty.driver_id,
             title: "Penalty Processed",
-            message: `Your penalty of $${penalty.amount} has been processed.`,
+            message: `Your penalty of ₹${penalty.amount} has been processed.`,
             type: "penalty",
           },
         ]);
@@ -218,7 +218,7 @@ export default function PenaltiesPage() {
                   Pending Amount
                 </p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
-                  ${stats.pendingAmount.toFixed(2)}
+                  ₹{stats.pendingAmount.toFixed(2)}
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-yellow-50">
@@ -233,7 +233,7 @@ export default function PenaltiesPage() {
                   Processed Amount
                 </p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
-                  ${stats.processedAmount.toFixed(2)}
+                  ₹{stats.processedAmount.toFixed(2)}
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-green-50">
@@ -321,7 +321,7 @@ export default function PenaltiesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        ${Number(penalty.amount).toFixed(2)}
+                        ₹{Number(penalty.amount).toFixed(2)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

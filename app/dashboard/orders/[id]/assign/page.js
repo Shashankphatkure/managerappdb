@@ -19,7 +19,7 @@ export default function AssignOrderPage({ params }) {
   const { id } = use(params);
   const supabase = createClientComponentClient();
   const [drivers, setDrivers] = useState([]);
-  const [selectedDriver, setSelectedDriver] = useState("");
+  const [selectedDriver, setSelectedDriver] = useState(null);
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
   const [orderDetails, setOrderDetails] = useState(null);
@@ -388,9 +388,9 @@ export default function AssignOrderPage({ params }) {
               {filteredDrivers.map((driver) => (
                 <div
                   key={driver.id}
-                  onClick={() => setSelectedDriver(driver)}
+                  onClick={() => setSelectedDriver(driver.id)}
                   className={`p-4 rounded-lg border text-left hover:border-blue-500 transition-colors cursor-pointer ${
-                    selectedDriver?.id === driver.id
+                    selectedDriver === driver.id
                       ? "border-blue-500 bg-blue-50"
                       : "border-gray-200"
                   }`}
