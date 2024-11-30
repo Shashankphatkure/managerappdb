@@ -184,8 +184,6 @@ export default function MultiOrderPage() {
   async function handleConfirmOrders() {
     try {
       const orders = optimizedRoutes.map((route, index) => {
-        // For first order, start is store address
-        // For subsequent orders, start is previous customer's address
         const start =
           index === 0
             ? selectedStore.address
@@ -197,14 +195,14 @@ export default function MultiOrderPage() {
           driveremail: selectedDriver.email,
           customerid: route.customer.id,
           customername: route.customer.full_name,
-          status: "pending",
+          status: "confirmed",
           payment_status: "pending",
           start: start,
           storeid: selectedStore.id,
           destination: route.customer.homeaddress || "",
           distance: route.distance,
           time: route.duration,
-          delivery_sequence: index + 1, // Add sequence number
+          delivery_sequence: index + 1,
         };
       });
 
