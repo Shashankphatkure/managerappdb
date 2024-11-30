@@ -64,8 +64,13 @@ export default function MultiOrderPage() {
         })
       );
 
-      console.log("Drivers with counts:", driversWithCounts);
-      setDrivers(driversWithCounts || []);
+      // Sort drivers by order count (ascending)
+      const sortedDrivers = driversWithCounts.sort((a, b) => 
+        (a.active_orders?.count || 0) - (b.active_orders?.count || 0)
+      );
+
+      console.log("Drivers with counts:", sortedDrivers);
+      setDrivers(sortedDrivers || []);
     } catch (error) {
       console.error("Error fetching drivers:", error);
     }
