@@ -269,16 +269,10 @@ function CustomerForm({ customerId, isEditMode }) {
 
 // Main page component
 export default function NewCustomerPage() {
-  const searchParams = useSearchParams();
-  const customerId = searchParams.get("id");
-  const isEditMode = !!customerId;
-
   return (
     <DashboardLayout
-      title={isEditMode ? "Edit Customer" : "Add New Customer"}
-      subtitle={
-        isEditMode ? "Update customer profile" : "Create a new customer profile"
-      }
+      title="Add New Customer"
+      subtitle="Create a new customer profile"
       actions={
         <button
           onClick={() => router.push("/dashboard/customers")}
@@ -303,10 +297,24 @@ export default function NewCustomerPage() {
           </div>
         }
       >
-        <CustomerForm customerId={customerId} isEditMode={isEditMode} />
+        <CustomerFormWrapper />
       </Suspense>
     </DashboardLayout>
   );
+}
+
+// New wrapper component to handle search params
+function CustomerFormWrapper() {
+  const searchParams = useSearchParams();
+  const customerId = searchParams.get("id");
+  const isEditMode = !!customerId;
+
+  // Update title and subtitle based on mode
+  useEffect(() => {
+    document.title = isEditMode ? "Edit Customer" : "Add New Customer";
+  }, [isEditMode]);
+
+  return <CustomerForm customerId={customerId} isEditMode={isEditMode} />;
 }
 
 // New FormField component for better organization
