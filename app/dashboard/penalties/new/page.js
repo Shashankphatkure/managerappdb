@@ -152,7 +152,7 @@ export default function NewPenaltyPage() {
         </button>
       }
     >
-      <div className="max-w-3xl mx-auto p-8">
+      <div className="">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <form onSubmit={handleSubmit} className="divide-y divide-gray-200">
             {/* Driver Selection */}
@@ -272,7 +272,7 @@ export default function NewPenaltyPage() {
                           <option value="">Select a reason</option>
                           {predefinedReasons.map((reason) => (
                             <option key={reason.id} value={reason.id}>
-                              {reason.reason} (${reason.default_amount})
+                              {reason.reason} (₹{reason.default_amount})
                             </option>
                           ))}
                         </select>
