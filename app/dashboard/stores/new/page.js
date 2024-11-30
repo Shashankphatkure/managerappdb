@@ -24,7 +24,6 @@ export default function NewStorePage() {
     phone: "",
     opening_time: "",
     closing_time: "",
-    image_url: "",
   });
 
   const formFields = [
@@ -72,14 +71,6 @@ export default function NewStorePage() {
       onChange: (value) => setStore({ ...store, closing_time: value }),
       icon: ClockIcon,
     },
-    {
-      label: "Image URL",
-      type: "url",
-      value: store.image_url,
-      onChange: (value) => setStore({ ...store, image_url: value }),
-      icon: PhotoIcon,
-      placeholder: "https://...",
-    },
   ];
 
   async function handleSubmit(e) {
@@ -118,7 +109,7 @@ export default function NewStorePage() {
         </button>
       }
     >
-      <div className="max-w-3xl mx-auto p-8">
+      <div className="">
         <div className="bg-white border border-[#edebe9] rounded-lg shadow-sm p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {formFields.map((field) => (
