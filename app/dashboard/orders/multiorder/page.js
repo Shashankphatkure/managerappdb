@@ -65,8 +65,8 @@ export default function MultiOrderPage() {
       );
 
       // Sort drivers by order count (ascending)
-      const sortedDrivers = driversWithCounts.sort((a, b) => 
-        (a.active_orders?.count || 0) - (b.active_orders?.count || 0)
+      const sortedDrivers = driversWithCounts.sort(
+        (a, b) => (a.active_orders?.count || 0) - (b.active_orders?.count || 0)
       );
 
       console.log("Drivers with counts:", sortedDrivers);
@@ -191,10 +191,10 @@ export default function MultiOrderPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredDrivers.map((driver) => (
-                <button
+                <div
                   key={driver.id}
                   onClick={() => setSelectedDriver(driver)}
-                  className={`p-4 rounded-lg border text-left hover:border-blue-500 transition-colors ${
+                  className={`p-4 rounded-lg border text-left hover:border-blue-500 transition-colors cursor-pointer ${
                     selectedDriver?.id === driver.id
                       ? "border-blue-500 bg-blue-50"
                       : "border-gray-200"
@@ -258,7 +258,7 @@ export default function MultiOrderPage() {
                       )}
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
               {filteredDrivers.length === 0 && (
                 <p className="text-gray-500 col-span-full text-center py-4">
