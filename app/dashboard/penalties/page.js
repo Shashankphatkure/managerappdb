@@ -18,12 +18,15 @@ export default function PenaltiesPage() {
     pendingAmount: 0,
     processedAmount: 0,
   });
+  const [drivers, setDrivers] = useState([]);
+  const [selectedDriver, setSelectedDriver] = useState("");
   const supabase = createClientComponentClient();
 
   useEffect(() => {
+    fetchDrivers();
     fetchPenalties();
     fetchStats();
-  }, []);
+  }, [selectedDriver]);
 
   async function fetchStats() {
     try {
@@ -51,8 +54,7 @@ export default function PenaltiesPage() {
 
   async function fetchPenalties() {
     try {
-      // First, get all penalties
-      const { data: penaltiesData, error: penaltiesError } = await supabase
+      let query = supabase
         .from("penalties")
         .select(
           `
@@ -66,6 +68,12 @@ export default function PenaltiesPage() {
         `
         )
         .order("created_at", { ascending: false });
+
+      if (selectedDriver) {
+        query = query.eq("driver_id", selectedDriver);
+      }
+
+      const { data: penaltiesData, error: penaltiesError } = await query;
 
       if (penaltiesError) throw penaltiesError;
 
@@ -158,6 +166,20 @@ export default function PenaltiesPage() {
     );
   };
 
+  async function fetchDrivers() {
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, full_name")
+        .order("full_name");
+
+      if (error) throw error;
+      setDrivers(data || []);
+    } catch (error) {
+      console.error("Error fetching drivers:", error);
+    }
+  }
+
   return (
     <DashboardLayout
       title="Penalties"
@@ -219,6 +241,32 @@ export default function PenaltiesPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Simplified Driver Filter */}
+        <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex items-center justify-between">
+          <div className="flex-1 max-w-xs">
+            <select
+              value={selectedDriver}
+              onChange={(e) => setSelectedDriver(e.target.value)}
+              className="w-full text-sm border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">All Drivers</option>
+              {drivers.map((driver) => (
+                <option key={driver.id} value={driver.id}>
+                  {driver.full_name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {selectedDriver && (
+            <button
+              onClick={() => setSelectedDriver("")}
+              className="ml-3 text-sm text-gray-500 hover:text-gray-700"
+            >
+              <XCircleIcon className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
         {/* Penalties List */}
