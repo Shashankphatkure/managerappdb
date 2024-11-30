@@ -1,264 +1,121 @@
 "use client";
-import { useState, useEffect } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import {
-  MegaphoneIcon,
-  UserGroupIcon,
-  CheckCircleIcon,
-  ClockIcon,
-} from "@heroicons/react/24/outline";
 
-export default function AnnouncementsPage() {
-  const [announcement, setAnnouncement] = useState({
-    title: "",
-    message: "",
-    url: "",
-    imageUrl: "",
-  });
+import { useState } from "react";
+
+export default function SendNotification() {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [recentAnnouncements, setRecentAnnouncements] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClientComponentClient();
+  const [result, setResult] = useState(null);
 
-  useEffect(() => {
-    fetchRecentAnnouncements();
-  }, []);
-
-  async function fetchRecentAnnouncements() {
-    try {
-      const { data } = await supabase
-        .from("announcements")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
-      setRecentAnnouncements(data || []);
-    } catch (error) {
-      console.error("Error fetching announcements:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const sendNotification = async () => {
     setIsSending(true);
+    setResult(null);
 
     try {
-      const response = await fetch("/api/send-announcement", {
+      const response = await fetch("/api/send-notification", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          title: announcement.title,
-          message: announcement.message,
-          url: announcement.url,
-          imageUrl: announcement.imageUrl,
-        }),
+        body: JSON.stringify({ title, description }),
       });
 
       const data = await response.json();
+      console.log("API response:", data);
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to send announcement");
+        throw new Error(data.error || "Failed to send notification");
       }
 
-      console.log("OneSignal Response:", data);
-
-      const { error: supabaseError } = await supabase
-        .from("announcements")
-        .insert([
-          {
-            title: announcement.title,
-            message: announcement.message,
-            sent_at: new Date().toISOString(),
-            url: announcement.url,
-            image_url: announcement.imageUrl,
-          },
-        ]);
-
-      if (supabaseError) {
-        console.error("Supabase Error:", supabaseError);
-        throw new Error("Failed to save announcement to database");
-      }
-
-      setAnnouncement({
-        title: "",
-        message: "",
-        url: "",
-        imageUrl: "",
-      });
-
-      alert("Announcement sent successfully!");
-      fetchRecentAnnouncements();
+      setResult("Notification sent successfully!");
     } catch (error) {
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        error,
-      });
-      alert(`Failed to send announcement: ${error.message}`);
+      console.error("Error sending notification:", error);
+      setResult(`Failed to send notification. Error: ${error.message}`);
     } finally {
       setIsSending(false);
     }
   };
 
   return (
-    <div className="p-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Announcement Form */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-semibold mb-6">
-            Send Push Notification to All Users
-          </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
+        <div className="p-8">
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-6 text-center">
+            Send Push Notification
+          </h1>
+          <div className="space-y-6">
             <div>
               <label
                 htmlFor="title"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700"
               >
-                Notification Title *
+                Notification Title
               </label>
               <input
                 type="text"
                 id="title"
-                value={announcement.title}
-                onChange={(e) =>
-                  setAnnouncement((prev) => ({
-                    ...prev,
-                    title: e.target.value,
-                  }))
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 placeholder="Enter notification title"
               />
             </div>
-
             <div>
               <label
-                htmlFor="message"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700"
               >
-                Message *
+                Notification Description
               </label>
               <textarea
-                id="message"
-                value={announcement.message}
-                onChange={(e) =>
-                  setAnnouncement((prev) => ({
-                    ...prev,
-                    message: e.target.value,
-                  }))
-                }
-                rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                required
-                placeholder="Enter notification message"
-              />
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows="4"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                placeholder="Enter notification description"
+              ></textarea>
             </div>
-
             <div>
-              <label
-                htmlFor="url"
-                className="block text-sm font-medium text-gray-700 mb-1"
+              <button
+                onClick={sendNotification}
+                disabled={isSending}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                URL (Optional)
-              </label>
-              <input
-                type="url"
-                id="url"
-                value={announcement.url}
-                onChange={(e) =>
-                  setAnnouncement((prev) => ({ ...prev, url: e.target.value }))
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="https://example.com"
-              />
+                {isSending ? (
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                ) : null}
+                {isSending ? "Sending..." : "Send Notification"}
+              </button>
             </div>
-
-            <div>
-              <label
-                htmlFor="imageUrl"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Image URL (Optional)
-              </label>
-              <input
-                type="url"
-                id="imageUrl"
-                value={announcement.imageUrl}
-                onChange={(e) =>
-                  setAnnouncement((prev) => ({
-                    ...prev,
-                    imageUrl: e.target.value,
-                  }))
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSending}
-              className={`w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                isSending ? "opacity-75 cursor-not-allowed" : ""
+          </div>
+          {result && (
+            <div
+              className={`mt-6 text-sm ${
+                result.includes("Error") ? "text-red-600" : "text-green-600"
               }`}
             >
-              {isSending ? "Sending..." : "Send Push Notification"}
-            </button>
-          </form>
-        </div>
-
-        {/* Recent Announcements */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-semibold mb-6">Recent Notifications</h2>
-          {loading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse h-24 bg-gray-100 rounded-lg"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {recentAnnouncements.map((ann) => (
-                <div
-                  key={ann.id}
-                  className="border border-gray-200 rounded-lg p-4"
-                >
-                  <h3 className="font-medium text-gray-900">{ann.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{ann.message}</p>
-                  {ann.url && (
-                    <a
-                      href={ann.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-800 mt-1 block"
-                    >
-                      {ann.url}
-                    </a>
-                  )}
-                  <p className="text-xs text-gray-400 mt-2">
-                    {new Date(ann.sent_at).toLocaleString()}
-                  </p>
-                </div>
-              ))}
-              {recentAnnouncements.length === 0 && (
-                <div className="text-center py-8">
-                  <MegaphoneIcon className="mx-auto h-12 w-12 text-gray-300" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">
-                    No notifications sent yet
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Start sending push notifications to your users.
-                  </p>
-                </div>
-              )}
+              {result}
             </div>
           )}
         </div>
