@@ -9,6 +9,7 @@ import {
   CheckCircleIcon,
   BanknotesIcon,
   PlusIcon,
+  DocumentDuplicateIcon,
 } from "@heroicons/react/24/outline";
 
 const getPaymentStatusColor = (status) => {
@@ -145,12 +146,20 @@ export default function OrdersPage() {
     <DashboardLayout
       title="Orders"
       actions={
-        <Link
-          href="/dashboard/orders/new"
-          className="dashboard-button-primary flex items-center gap-2"
-        >
-          <PlusIcon className="w-5 h-5" /> Create New Order
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href="/dashboard/orders/new"
+            className="dashboard-button-primary flex items-center gap-2"
+          >
+            <PlusIcon className="w-5 h-5" /> Create New Order
+          </Link>
+          <Link
+            href="/dashboard/orders/multiorder"
+            className="dashboard-button-secondary flex items-center gap-2"
+          >
+            <DocumentDuplicateIcon className="w-5 h-5" /> Create Multi-Order
+          </Link>
+        </div>
       }
     >
       <div className="p-6">
