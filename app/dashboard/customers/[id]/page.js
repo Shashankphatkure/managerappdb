@@ -63,12 +63,12 @@ export default function CustomerDetailPage({ params }) {
             <p className="mt-2 text-gray-600">
               The customer you're looking for doesn't exist or has been removed.
             </p>
-            <button
-              onClick={() => router.push("/dashboard/customers")}
+            <Link
+              href="/dashboard/customers"
               className="mt-4 dashboard-button-secondary"
             >
               Back to Customers
-            </button>
+            </Link>
           </div>
         </div>
       </DashboardLayout>

@@ -269,6 +269,8 @@ function CustomerForm({ customerId, isEditMode }) {
 
 // Main page component
 export default function NewCustomerPage() {
+  const router = useRouter();
+
   return (
     <DashboardLayout
       title="Add New Customer"
