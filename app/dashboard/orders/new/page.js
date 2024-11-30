@@ -164,154 +164,195 @@ export default function NewOrderPage() {
         </button>
       }
     >
-      <div className="max-w-3xl mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Customer Selection */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Customer
-              </label>
-              <select
-                value={formData.customerid}
-                onChange={handleCustomerChange}
-                className="dashboard-input"
-                required
-              >
-                <option value="">Select Customer</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.full_name} - {customer.phone}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Store Selection */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Store
-              </label>
-              <select
-                value={formData.storeid}
-                onChange={handleStoreChange}
-                className="dashboard-input"
-                required
-              >
-                <option value="">Select Store</option>
-                {stores.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Pickup Location (Store Address) */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Pickup Location (Store Address)
-              </label>
-              <input
-                type="text"
-                value={formData.start}
-                className="dashboard-input bg-gray-50"
-                disabled
-              />
-            </div>
-
-            {/* Delivery Address Selection */}
-            {selectedCustomer && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Delivery Address Type
-                </label>
-                <select
-                  onChange={handleAddressTypeChange}
-                  className="dashboard-input"
-                  required
-                >
-                  <option value="homeaddress">Home Address</option>
-                  <option value="workaddress">Work Address</option>
-                </select>
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-8">
+          <form onSubmit={handleSubmit} className="space-y-10">
+            {/* Customer Information Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 border-b border-gray-200 pb-3">
+                <UserIcon className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Customer Information
+                </h2>
               </div>
-            )}
 
-            {/* Delivery Address (Customer Address) */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Delivery Address
-              </label>
-              <input
-                type="text"
-                value={formData.destination}
-                className="dashboard-input bg-gray-50"
-                disabled
-              />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Select Customer *
+                  </label>
+                  <select
+                    value={formData.customerid}
+                    onChange={handleCustomerChange}
+                    className="dashboard-input mt-1"
+                    required
+                  >
+                    <option value="">Choose a customer...</option>
+                    {customers.map((customer) => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.full_name} - {customer.phone}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedCustomer && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Delivery Address Type *
+                    </label>
+                    <select
+                      onChange={handleAddressTypeChange}
+                      className="dashboard-input mt-1"
+                      required
+                    >
+                      <option value="homeaddress">Home Address</option>
+                      <option value="workaddress">Work Address</option>
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Amount */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Amount
-              </label>
-              <input
-                type="number"
-                name="total_amount"
-                value={formData.total_amount}
-                onChange={handleInputChange}
-                className="dashboard-input"
-                step="0.01"
-                required
-              />
+            {/* Store & Delivery Details Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 border-b border-gray-200 pb-3">
+                <BuildingStorefrontIcon className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Store & Delivery Details
+                </h2>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Select Store *
+                  </label>
+                  <select
+                    value={formData.storeid}
+                    onChange={handleStoreChange}
+                    className="dashboard-input mt-1"
+                    required
+                  >
+                    <option value="">Choose a store...</option>
+                    {stores.map((store) => (
+                      <option key={store.id} value={store.id}>
+                        {store.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Pickup Location
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.start}
+                      className="dashboard-input bg-gray-50"
+                      disabled
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Delivery Address
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.destination}
+                      className="dashboard-input bg-gray-50"
+                      disabled
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Payment Method */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Payment Method
-              </label>
-              <select
-                name="payment_method"
-                value={formData.payment_method}
-                onChange={handleInputChange}
-                className="dashboard-input"
-                required
-              >
-                <option value="">Select Payment Method</option>
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="upi">UPI</option>
-              </select>
+            {/* Payment Details Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 border-b border-gray-200 pb-3">
+                <CurrencyDollarIcon className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Payment Details
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Amount (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    name="total_amount"
+                    value={formData.total_amount}
+                    onChange={handleInputChange}
+                    className="dashboard-input"
+                    step="0.01"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Payment Method *
+                  </label>
+                  <select
+                    name="payment_method"
+                    value={formData.payment_method}
+                    onChange={handleInputChange}
+                    className="dashboard-input mt-1"
+                    required
+                  >
+                    <option value="">Select method...</option>
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="upi">UPI</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
-            {/* Delivery Notes */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Delivery Notes
-              </label>
-              <textarea
-                name="delivery_notes"
-                value={formData.delivery_notes}
-                onChange={handleInputChange}
-                className="dashboard-input"
-                rows={3}
-              />
+            {/* Additional Notes Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 border-b border-gray-200 pb-3">
+                <DocumentTextIcon className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Additional Notes
+                </h2>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Delivery Instructions
+                </label>
+                <textarea
+                  name="delivery_notes"
+                  value={formData.delivery_notes}
+                  onChange={handleInputChange}
+                  className="dashboard-input mt-1"
+                  rows={3}
+                  placeholder="Add any special instructions for the delivery..."
+                />
+              </div>
             </div>
 
-            {/* Submit Button */}
-            <div className="flex justify-end gap-3">
+            {/* Submit Buttons */}
+            <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
               <button
                 type="button"
                 onClick={() => router.push("/dashboard/orders")}
-                className="dashboard-button-secondary"
+                className="dashboard-button-secondary px-6"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="dashboard-button-primary"
+                className="dashboard-button-primary px-6"
               >
                 {submitting ? "Creating..." : "Create Order"}
               </button>
