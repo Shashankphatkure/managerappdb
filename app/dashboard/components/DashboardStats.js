@@ -62,11 +62,13 @@ export default function DashboardStats() {
         supabase
           .from("orders")
           .select("total_amount")
-          .eq("status", "delivered"),
+          .eq("status", "delivered")
+          .eq("payment_status", "completed"),
         supabase
           .from("penalties")
           .select("*", { count: "exact" })
-          .eq("status", "pending"),
+          .eq("status", "pending")
+          .is("appeal_status", null),
       ]);
 
       const totalRevenue = revenueData.data?.reduce(
