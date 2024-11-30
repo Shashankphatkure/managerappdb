@@ -335,7 +335,7 @@ export default function OrdersPage() {
                               Assign
                             </Link>
                           )}
-                          {order.status === "pending" && order.driverid && (
+                          {order.status === "confirmed" && order.driverid && (
                             <Link
                               href={`/dashboard/orders/${order.id}/transfer`}
                               className="text-orange-600 hover:text-orange-900 font-medium"

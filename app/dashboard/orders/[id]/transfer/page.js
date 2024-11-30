@@ -38,10 +38,8 @@ export default function TransferOrderPage({ params }) {
           `
           *,
           stores (name, address),
-          users (full_name, phone),
-          delivery_assignments (
-            delivery_personnel (full_name, phone)
-          )
+          users!fk_orders_driver (full_name, phone, location),
+          customers (full_name, phone)
         `
         )
         .eq("id", id)
@@ -58,23 +56,25 @@ export default function TransferOrderPage({ params }) {
     try {
       // Fetch current assignment
       const { data: assignment } = await supabase
-        .from("delivery_assignments")
-        .select("delivery_personnel_id, delivery_personnel (full_name)")
-        .eq("order_id", id)
+        .from("orders")
+        .select("driverid, users!fk_orders_driver(full_name)")
+        .eq("id", id)
         .single();
 
       if (assignment) {
         setCurrentDriver({
-          id: assignment.delivery_personnel_id,
-          name: assignment.delivery_personnel.full_name,
+          id: assignment.driverid,
+          name: assignment.users.full_name,
         });
       }
 
-      // Fetch available drivers
+      // Fetch available drivers (users who are drivers)
       const { data: availableDrivers } = await supabase
-        .from("delivery_personnel")
+        .from("users")
         .select("id, full_name, phone")
-        .eq("is_active", true);
+        .eq("is_active", true)
+        // Add conditions to filter for drivers (you might want to add a role column or use vehicle-related fields)
+        .not("vehicle_number", "is", null); // This assumes drivers must have a vehicle number
 
       setDrivers(availableDrivers || []);
     } catch (error) {
@@ -89,46 +89,44 @@ export default function TransferOrderPage({ params }) {
     setTransferring(true);
 
     try {
-      // Create transfer record
-      const { error: transferError } = await supabase
-        .from("order_transfers")
-        .insert([
-          {
-            order_id: id,
-            from_driver_id: currentDriver.id,
-            to_driver_id: selectedDriver,
-            reason,
-          },
-        ]);
+      // First, get the previous driver's location
+      const { data: previousDriver, error: driverError } = await supabase
+        .from("users")
+        .select("location")
+        .eq("id", currentDriver.id)
+        .single();
 
-      if (transferError) throw transferError;
+      if (driverError) throw driverError;
 
-      // Update delivery assignment
-      const { error: assignmentError } = await supabase
-        .from("delivery_assignments")
-        .update({ delivery_personnel_id: selectedDriver })
-        .eq("order_id", id);
+      // Update order with new driver and start location
+      const { error: orderError } = await supabase
+        .from("orders")
+        .update({
+          driverid: selectedDriver,
+          drivername:
+            drivers.find((d) => d.id === selectedDriver)?.full_name || "",
+          start: previousDriver.location || "", // Set start to previous driver's location
+        })
+        .eq("id", id);
 
-      if (assignmentError) throw assignmentError;
+      if (orderError) throw orderError;
 
       // Create notifications for both drivers
-      await Promise.all([
-        supabase.from("notifications").insert([
-          {
-            recipient_type: "driver",
-            recipient_id: currentDriver.id,
-            title: "Order Transferred",
-            message: `Order #${id} has been reassigned to another driver`,
-            type: "order",
-          },
-          {
-            recipient_type: "driver",
-            recipient_id: selectedDriver,
-            title: "New Order Assigned",
-            message: `Order #${id} has been assigned to you`,
-            type: "order",
-          },
-        ]),
+      await supabase.from("notifications").insert([
+        {
+          recipient_type: "driver",
+          recipient_id: currentDriver.id,
+          title: "Order Transferred",
+          message: `Order #${id} has been reassigned to another driver`,
+          type: "order",
+        },
+        {
+          recipient_type: "driver",
+          recipient_id: selectedDriver,
+          title: "New Order Assigned",
+          message: `Order #${id} has been assigned to you`,
+          type: "order",
+        },
       ]);
 
       router.push("/dashboard/orders");
@@ -154,7 +152,7 @@ export default function TransferOrderPage({ params }) {
       }
     >
       <div className="p-6">
-        <div className="max-w-3xl mx-auto">
+        <div className="">
           {/* Order Details Card */}
           {orderDetails && (
             <div className="dashboard-card mb-6">
@@ -168,12 +166,12 @@ export default function TransferOrderPage({ params }) {
                   <div className="flex items-center gap-2">
                     <UserGroupIcon className="w-5 h-5 text-gray-400" />
                     <span className="font-medium">
-                      {orderDetails.users?.full_name}
+                      {orderDetails.customers?.full_name}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <PhoneIcon className="w-5 h-5 text-gray-400" />
-                    <span>{orderDetails.users?.phone}</span>
+                    <span>{orderDetails.customers?.phone}</span>
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -194,8 +192,24 @@ export default function TransferOrderPage({ params }) {
                   <div className="flex items-center gap-2">
                     <UserGroupIcon className="w-5 h-5 text-gray-400" />
                     <span className="font-medium">
-                      {orderDetails.delivery_assignments?.[0]
-                        ?.delivery_personnel?.full_name || "No driver assigned"}
+                      {orderDetails.users?.full_name || "No driver assigned"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <PhoneIcon className="w-5 h-5 text-gray-400" />
+                    <span>{orderDetails.users?.phone}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPinIcon className="w-5 h-5 text-gray-400" />
+                    <span>
+                      Current Location:{" "}
+                      {orderDetails.users?.location || "Location not available"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPinIcon className="w-5 h-5 text-gray-400" />
+                    <span>
+                      Start Location: {orderDetails.start || "Not set"}
                     </span>
                   </div>
                 </div>
