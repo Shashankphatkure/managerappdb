@@ -253,11 +253,11 @@ export default function ViewOrderPage({ params }) {
     <DashboardLayout
       title={`Order #${id}`}
       actions={
-        <div className="space-x-2">
+        <div className="flex items-center space-x-2">
           {order.status === "pending" && !order.driverid && (
             <Link
               href={`/dashboard/orders/${id}/assign`}
-              className="dashboard-button-primary"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Assign Driver
             </Link>
@@ -265,16 +265,16 @@ export default function ViewOrderPage({ params }) {
           {order.status === "pending" && order.driverid && (
             <Link
               href={`/dashboard/orders/${id}/transfer`}
-              className="dashboard-button-secondary"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Transfer Order
             </Link>
           )}
           <button
             onClick={() => router.push("/dashboard/orders")}
-            className="dashboard-button-secondary flex items-center gap-2"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            <ArrowLeftIcon className="w-5 h-5" />
+            <ArrowLeftIcon className="w-5 h-5 mr-2" />
             Back to Orders
           </button>
         </div>
