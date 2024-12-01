@@ -181,7 +181,6 @@ export default function NewMenuItemPage() {
       type: "textarea",
       value: item.description,
       onChange: (value) => setItem({ ...item, description: value }),
-      icon: DocumentTextIcon,
     },
     {
       label: "Price",
@@ -189,16 +188,7 @@ export default function NewMenuItemPage() {
       value: item.price,
       onChange: (value) => setItem({ ...item, price: value }),
       icon: PhoneIcon,
-      prefix: "$",
       required: true,
-    },
-    {
-      label: "Image URL",
-      type: "url",
-      value: item.image_url,
-      onChange: (value) => setItem({ ...item, image_url: value }),
-      icon: PhotoIcon,
-      placeholder: "https://...",
     },
   ];
 
@@ -216,7 +206,7 @@ export default function NewMenuItemPage() {
         </button>
       }
     >
-      <div className="max-w-3xl mx-auto p-8">
+      <div className="mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {loading ? (
           <div className="space-y-4">
             {[...Array(6)].map((_, i) => (
@@ -227,13 +217,16 @@ export default function NewMenuItemPage() {
             ))}
           </div>
         ) : (
-          <div className="bg-white border border-[#edebe9] rounded-lg shadow-sm p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="bg-white border border-[#edebe9] rounded-lg shadow-sm p-8">
+            <form onSubmit={handleSubmit} className="space-y-8">
               {formFields.map((field) => (
-                <div key={field.label} className="space-y-2">
+                <div key={field.label} className="space-y-3">
                   <div className="flex justify-between items-center">
                     <label className="text-sm font-semibold text-[#323130]">
                       {field.label}
+                      {field.required && (
+                        <span className="text-red-500 ml-1">*</span>
+                      )}
                     </label>
                     {field.addNew && (
                       <button
@@ -247,9 +240,6 @@ export default function NewMenuItemPage() {
                     )}
                   </div>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <field.icon className="h-5 w-5 text-[#605e5c]" />
-                    </div>
                     {field.type === "select" ? (
                       <select
                         value={field.value}
@@ -265,14 +255,20 @@ export default function NewMenuItemPage() {
                         ))}
                       </select>
                     ) : field.type === "textarea" ? (
-                      <textarea
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
-                        className="dashboard-input pl-10"
-                        rows={3}
-                        required={field.required}
-                        placeholder={field.placeholder}
-                      />
+                      <div className="relative">
+                        <textarea
+                          value={field.value}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          className={
+                            field.icon
+                              ? "dashboard-input pl-10"
+                              : "dashboard-input"
+                          }
+                          rows={3}
+                          required={field.required}
+                          placeholder={field.placeholder}
+                        />
+                      </div>
                     ) : (
                       <div className="relative">
                         {field.prefix && (
@@ -300,7 +296,7 @@ export default function NewMenuItemPage() {
                 </div>
               ))}
 
-              <div className="pt-6 border-t border-[#edebe9]">
+              <div className="pt-8 border-t border-[#edebe9]">
                 <div className="flex justify-end gap-3">
                   <button
                     type="button"
@@ -324,9 +320,9 @@ export default function NewMenuItemPage() {
 
         {/* Category Modal */}
         {showCategoryModal && (
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-              <div className="p-6">
+              <div className="p-8">
                 <h2 className="text-xl font-semibold text-[#323130] mb-4">
                   Add New Category
                 </h2>
