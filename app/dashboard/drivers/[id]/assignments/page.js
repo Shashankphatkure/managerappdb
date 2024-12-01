@@ -34,9 +34,9 @@ export default function DriverAssignmentsPage({ params }) {
 
   async function fetchDriverAndOrders() {
     try {
-      // Fetch driver details
+      // Updated to fetch from users table instead of delivery_personnel
       const { data: driverData, error: driverError } = await supabase
-        .from("delivery_personnel")
+        .from("users")
         .select("*")
         .eq("id", id)
         .single();
