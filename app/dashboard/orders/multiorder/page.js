@@ -204,6 +204,7 @@ export default function MultiOrderPage() {
           distance: route.distance,
           time: route.duration,
           delivery_sequence: index + 1,
+          total_amount: 20.0,
         };
       });
 
