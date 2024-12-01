@@ -13,6 +13,7 @@ import {
   ArrowLeftIcon,
   PlusIcon,
   ShoppingBagIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 
 export default function NewMenuItemPage() {
@@ -24,26 +25,26 @@ export default function NewMenuItemPage() {
   const [categories, setCategories] = useState([]);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: "" });
-
-  const [item, setItem] = useState({
-    name: "",
-    description: "",
-    price: "",
-    store_id: "",
-    category_id: "",
-    image_url: "",
-    is_available: true,
-  });
+  const [items, setItems] = useState([
+    {
+      name: "",
+      description: "",
+      price: "",
+      store_id: "",
+      category_id: "",
+      is_available: true,
+    },
+  ]);
 
   useEffect(() => {
     fetchStores();
   }, []);
 
   useEffect(() => {
-    if (item.store_id) {
-      fetchCategories(item.store_id);
+    if (items[0]?.store_id) {
+      fetchCategories(items[0].store_id);
     }
-  }, [item.store_id]);
+  }, [items[0]?.store_id]);
 
   async function fetchStores() {
     try {
@@ -78,7 +79,7 @@ export default function NewMenuItemPage() {
   }
 
   async function handleCreateCategory() {
-    if (!item.store_id) {
+    if (!items[0]?.store_id) {
       alert("Please select a store first");
       return;
     }
@@ -94,7 +95,7 @@ export default function NewMenuItemPage() {
         .insert([
           {
             name: newCategory.name,
-            store_id: item.store_id,
+            store_id: items[0].store_id,
           },
         ])
         .select()
@@ -103,8 +104,8 @@ export default function NewMenuItemPage() {
       if (error) throw error;
 
       // Refresh categories and update the current item
-      await fetchCategories(item.store_id);
-      setItem({ ...item, category_id: data.id });
+      await fetchCategories(items[0].store_id);
+      setItems(items.map((item) => ({ ...item, category_id: data.id })));
       setShowCategoryModal(false);
       setNewCategory({ name: "" });
     } catch (error) {
@@ -120,82 +121,59 @@ export default function NewMenuItemPage() {
     try {
       const { data, error } = await supabase
         .from("menu_items")
-        .insert([
-          {
+        .insert(
+          items.map((item) => ({
             ...item,
             price: parseFloat(item.price),
-            category_id: item.category_id || null, // Handle empty category
-          },
-        ])
-        .select()
-        .single();
+            category_id: item.category_id || null,
+          }))
+        )
+        .select();
 
       if (error) throw error;
       router.push("/dashboard/items");
     } catch (error) {
-      console.error("Error creating menu item:", error.message);
-      alert(error.message || "Error creating menu item. Please try again.");
+      console.error("Error creating menu items:", error.message);
+      alert(error.message || "Error creating menu items. Please try again.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  const formFields = [
-    {
-      label: "Store",
-      type: "select",
-      value: item.store_id,
-      onChange: (value) => setItem({ ...item, store_id: value }),
-      icon: BuildingStorefrontIcon,
-      options: stores.map((store) => ({
-        value: store.id,
-        label: store.name,
-      })),
-      required: true,
-    },
-    {
-      label: "Category",
-      type: "select",
-      value: item.category_id,
-      onChange: (value) => setItem({ ...item, category_id: value }),
-      icon: MapPinIcon,
-      options: categories.map((category) => ({
-        value: category.id,
-        label: category.name,
-      })),
-      addNew: {
-        label: "Add New Category",
-        action: () => setShowCategoryModal(true),
+  const addItem = () => {
+    setItems([
+      ...items,
+      {
+        name: "",
+        description: "",
+        price: "",
+        store_id: items[0].store_id,
+        category_id: items[0].category_id,
+        is_available: true,
       },
-    },
-    {
-      label: "Item Name",
-      type: "text",
-      value: item.name,
-      onChange: (value) => setItem({ ...item, name: value }),
-      icon: ShoppingBagIcon,
-      required: true,
-    },
-    {
-      label: "Description",
-      type: "textarea",
-      value: item.description,
-      onChange: (value) => setItem({ ...item, description: value }),
-    },
-    {
-      label: "Price",
-      type: "number",
-      value: item.price,
-      onChange: (value) => setItem({ ...item, price: value }),
-      icon: PhoneIcon,
-      required: true,
-    },
-  ];
+    ]);
+  };
+
+  const removeItem = (index) => {
+    if (items.length > 1) {
+      setItems(items.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateItem = (index, field, value) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setItems(newItems);
+  };
+
+  const updateAllItems = (field, value) => {
+    setItems(items.map((item) => ({ ...item, [field]: value })));
+  };
 
   return (
     <DashboardLayout
-      title="Add New Menu Item"
-      subtitle="Create a new item for your store menu"
+      title="Add New Menu Items"
+      subtitle="Create one or more items for your store menu"
       actions={
         <button
           onClick={() => router.push("/dashboard/items")}
@@ -219,98 +197,129 @@ export default function NewMenuItemPage() {
         ) : (
           <div className="bg-white border border-[#edebe9] rounded-lg shadow-sm p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
-              {formFields.map((field) => (
-                <div key={field.label} className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <label className="text-sm font-semibold text-[#323130]">
-                      {field.label}
-                      {field.required && (
-                        <span className="text-red-500 ml-1">*</span>
-                      )}
-                    </label>
-                    {field.addNew && (
+              <div className="space-y-4">
+                <select
+                  value={items[0].store_id}
+                  onChange={(e) => updateAllItems("store_id", e.target.value)}
+                  className="dashboard-input pl-10"
+                  required
+                >
+                  <option value="">Select Store</option>
+                  {stores.map((store) => (
+                    <option key={store.id} value={store.id}>
+                      {store.name}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex gap-2">
+                  <select
+                    value={items[0].category_id}
+                    onChange={(e) =>
+                      updateAllItems("category_id", e.target.value)
+                    }
+                    className="dashboard-input pl-10 flex-1"
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoryModal(true)}
+                    className="px-4 py-2 text-sm font-medium text-[#0078d4] bg-white border border-[#0078d4] rounded-md hover:bg-[#f3f2f1]"
+                  >
+                    Add New
+                  </button>
+                </div>
+              </div>
+
+              {items.map((item, index) => (
+                <div key={index} className="border-t border-[#edebe9] pt-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium">Item #{index + 1}</h3>
+                    {items.length > 1 && (
                       <button
                         type="button"
-                        onClick={field.addNew.action}
-                        className="text-sm text-[#0078d4] hover:text-[#106ebe] flex items-center gap-1"
+                        onClick={() => removeItem(index)}
+                        className="text-red-500 hover:text-red-700"
                       >
-                        <PlusIcon className="w-4 h-4" />
-                        {field.addNew.label}
+                        <TrashIcon className="w-5 h-5" />
                       </button>
                     )}
                   </div>
-                  <div className="relative">
-                    {field.type === "select" ? (
-                      <select
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
-                        className="dashboard-input pl-10"
-                        required={field.required}
-                      >
-                        <option value="">Select {field.label}</option>
-                        {field.options.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : field.type === "textarea" ? (
-                      <div className="relative">
-                        <textarea
-                          value={field.value}
-                          onChange={(e) => field.onChange(e.target.value)}
-                          className={
-                            field.icon
-                              ? "dashboard-input pl-10"
-                              : "dashboard-input"
-                          }
-                          rows={3}
-                          required={field.required}
-                          placeholder={field.placeholder}
-                        />
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        {field.prefix && (
-                          <div className="absolute inset-y-0 left-10 flex items-center pointer-events-none">
-                            <span className="text-gray-500">
-                              {field.prefix}
-                            </span>
-                          </div>
-                        )}
-                        <input
-                          type={field.type}
-                          value={field.value}
-                          onChange={(e) => field.onChange(e.target.value)}
-                          className={`dashboard-input ${
-                            field.prefix ? "pl-14" : "pl-10"
-                          }`}
-                          required={field.required}
-                          placeholder={field.placeholder}
-                          step={field.type === "number" ? "0.01" : undefined}
-                          min={field.type === "number" ? "0" : undefined}
-                        />
-                      </div>
-                    )}
+
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      value={item.name}
+                      onChange={(e) =>
+                        updateItem(index, "name", e.target.value)
+                      }
+                      placeholder="Item Name"
+                      className="dashboard-input"
+                      required
+                    />
+
+                    <textarea
+                      value={item.description}
+                      onChange={(e) =>
+                        updateItem(index, "description", e.target.value)
+                      }
+                      placeholder="Description"
+                      className="dashboard-input"
+                      rows={3}
+                    />
+
+                    <input
+                      type="number"
+                      value={item.price}
+                      onChange={(e) =>
+                        updateItem(index, "price", e.target.value)
+                      }
+                      placeholder="Price"
+                      className="dashboard-input"
+                      step="0.01"
+                      min="0"
+                      required
+                    />
                   </div>
                 </div>
               ))}
+
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="text-[#0078d4] hover:text-[#106ebe] flex items-center gap-2"
+                >
+                  <PlusIcon className="w-5 h-5" />
+                  Add Another Item
+                </button>
+              </div>
 
               <div className="pt-8 border-t border-[#edebe9]">
                 <div className="flex justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => router.push("/dashboard/items")}
-                    className="px-4 py-2 text-sm font-medium text-[#323130] bg-white border border-[#8a8886] rounded-md hover:bg-[#f3f2f1] focus:outline-none focus:ring-2 focus:ring-[#0078d4]"
+                    className="px-4 py-2 text-sm font-medium text-[#323130] bg-white border border-[#8a8886] rounded-md hover:bg-[#f3f2f1]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="px-4 py-2 text-sm font-medium text-white bg-[#0078d4] border border-transparent rounded-md hover:bg-[#106ebe] focus:outline-none focus:ring-2 focus:ring-[#0078d4]"
+                    className="px-4 py-2 text-sm font-medium text-white bg-[#0078d4] border border-transparent rounded-md hover:bg-[#106ebe]"
                   >
-                    {submitting ? "Adding..." : "Add Item"}
+                    {submitting
+                      ? "Adding..."
+                      : `Add ${items.length} ${
+                          items.length === 1 ? "Item" : "Items"
+                        }`}
                   </button>
                 </div>
               </div>
