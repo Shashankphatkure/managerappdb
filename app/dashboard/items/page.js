@@ -233,7 +233,7 @@ export default function MenuItemsPage() {
                       {item.categories?.name || "Uncategorized"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
-                      ${parseFloat(item.price).toFixed(2)}
+                      ₹{parseFloat(item.price).toFixed(2)}
                     </td>
                     <td className="px-6 py-4">
                       <span

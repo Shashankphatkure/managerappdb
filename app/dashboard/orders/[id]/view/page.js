@@ -149,7 +149,7 @@ export default function ViewOrderPage({ params }) {
             <div>
               <p className="text-sm text-gray-500">Total Amount</p>
               <p className="font-medium text-green-600">
-                ${parseFloat(order.total_amount || 0).toFixed(2)}
+                ₹{parseFloat(order.total_amount || 0).toFixed(2)}
               </p>
             </div>
           </div>
