@@ -136,7 +136,7 @@ export default function OrdersPage() {
     },
     {
       title: "Today's Revenue",
-      value: `$${stats.todayRevenue.toFixed(2)}`,
+      value: `₹${stats.todayRevenue.toFixed(2)}`,
       icon: BanknotesIcon,
       color: "purple",
     },
@@ -298,7 +298,7 @@ export default function OrdersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <p className="text-sm font-medium text-gray-900">
-                          ${parseFloat(order.total_amount || 0).toFixed(2)}
+                          ₹{parseFloat(order.total_amount || 0).toFixed(2)}
                         </p>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
