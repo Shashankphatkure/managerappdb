@@ -292,7 +292,6 @@ export default function NewOrderPage() {
                     onChange={handleInputChange}
                     className="dashboard-input"
                     step="0.01"
-                    required
                   />
                 </div>
 
@@ -311,6 +310,9 @@ export default function NewOrderPage() {
                     <option value="cash">Cash</option>
                     <option value="card">Card</option>
                     <option value="upi">UPI</option>
+                    <option value="monthly_subscription">
+                      Monthly Subscription
+                    </option>
                   </select>
                 </div>
               </div>
