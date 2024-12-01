@@ -307,12 +307,12 @@ export default function NewOrderPage() {
                     required
                   >
                     <option value="">Select method...</option>
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="upi">UPI</option>
                     <option value="monthly_subscription">
                       Monthly Subscription
                     </option>
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="upi">UPI</option>
                   </select>
                 </div>
               </div>
