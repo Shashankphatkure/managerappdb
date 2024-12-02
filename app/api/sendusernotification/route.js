@@ -23,10 +23,21 @@ export async function POST(request) {
       throw new Error("recipient_id is required");
     }
 
+    // Get the auth_id from users table using recipient_id
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("auth_id")
+      .eq("id", record.recipient_id)
+      .single();
+
+    if (userError || !userData?.auth_id) {
+      throw new Error(`Could not find auth_id for user ${record.recipient_id}`);
+    }
+
     // Send to OneSignal with additional logging
     console.log("Sending to OneSignal:", {
       app_id: process.env.ONESIGNAL_APP_ID,
-      recipient_id: record.recipient_id,
+      recipient_id: userData.auth_id,
       title: record.title,
       message: record.message,
     });
@@ -41,14 +52,12 @@ export async function POST(request) {
         app_id: process.env.ONESIGNAL_APP_ID,
         contents: { en: record.message },
         headings: { en: record.title },
-        include_external_user_ids: [record.recipient_id.toString()],
-        // Add these fields for better targeting
+        include_external_user_ids: [userData.auth_id.toString()],
         target_channel: "push",
         data: {
           type: record.type,
           recipient_type: record.recipient_type,
         },
-        // Add filters for driver type
         filters: [
           { field: "tag", key: "user_type", relation: "=", value: "driver" },
         ],
