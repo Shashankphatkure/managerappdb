@@ -40,6 +40,7 @@ export default function DriversPage() {
             phone,
             full_name,
             city,
+            is_active,
             status,
             created_at
           `
@@ -100,6 +101,17 @@ export default function DriversPage() {
     return colors[status] || "bg-gray-100 text-gray-800";
   };
 
+  const getAvailabilityColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "available":
+        return "bg-green-100 text-green-800";
+      case "unavailable":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
     <DashboardLayout
       title="Delivery Drivers"
@@ -137,9 +149,7 @@ export default function DriversPage() {
                         </div>
                         <span
                           className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white ${
-                            driver.status === "active"
-                              ? "bg-green-400"
-                              : "bg-gray-300"
+                            driver.is_active ? "bg-green-400" : "bg-gray-300"
                           }`}
                         />
                       </div>
@@ -153,12 +163,19 @@ export default function DriversPage() {
                           </span>
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              driver.status === "active"
+                              driver.is_active
                                 ? "bg-green-100 text-green-800"
                                 : "bg-red-100 text-red-800"
                             }`}
                           >
-                            {driver.status || "Inactive"}
+                            {driver.is_active ? "Active" : "Inactive"}
+                          </span>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAvailabilityColor(
+                              driver.status
+                            )}`}
+                          >
+                            {driver.status || "Unknown"}
                           </span>
                         </div>
                       </div>
