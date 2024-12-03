@@ -18,12 +18,14 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import SearchOverlay from "./components/SearchOverlay";
 
 export default function ClientLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [userData, setUserData] = useState(null);
   const pathname = usePathname();
   const supabase = createClientComponentClient();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     async function getUserData() {
@@ -173,7 +175,10 @@ export default function ClientLayout({ children }) {
               </h1>
             </div>
             <div className="flex items-center gap-4">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
                 <MagnifyingGlassIcon className="w-5 h-5 text-gray-500" />
               </button>
               <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative">
@@ -187,6 +192,11 @@ export default function ClientLayout({ children }) {
         {/* Page Content */}
         <main className="p-6">{children}</main>
       </div>
+
+      <SearchOverlay
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </div>
   );
 }
