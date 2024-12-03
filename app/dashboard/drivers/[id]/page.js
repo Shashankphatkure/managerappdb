@@ -92,30 +92,49 @@ export default function DriverDetailPage({ params }) {
           }
         );
 
-        if (authError) throw authError;
+        if (authError) {
+          console.error("Auth Error:", authError);
+          throw new Error(`Authentication failed: ${authError.message}`);
+        }
 
-        const { error: dbError } = await supabase.from("users").insert([
-          {
-            ...driver,
-            auth_id: authData.user.id,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ]);
+        if (!authData?.user?.id) {
+          throw new Error("No user ID returned from authentication");
+        }
 
-        if (dbError) throw dbError;
+        const { password, ...driverWithoutPassword } = driver;
+
+        const { data: userData, error: dbError } = await supabase
+          .from("users")
+          .insert([
+            {
+              ...driverWithoutPassword,
+              auth_id: authData.user.id,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ])
+          .select();
+
+        if (dbError) {
+          console.error("Database Error:", dbError);
+          throw new Error(`Database insert failed: ${dbError.message}`);
+        }
       } else {
         const { error } = await supabase
           .from("users")
           .update(driver)
           .eq("id", driverId);
-        if (error) throw error;
+
+        if (error) {
+          console.error("Update Error:", error);
+          throw new Error(`Update failed: ${error.message}`);
+        }
       }
 
       router.push("/dashboard/drivers");
     } catch (error) {
-      console.error("Error saving driver:", error);
-      alert("Error saving driver. Please try again.");
+      console.error("Detailed Error:", error);
+      alert(error.message || "Error saving driver. Please try again.");
     } finally {
       setSaving(false);
     }
