@@ -154,12 +154,12 @@ export default function DeliveredOrders() {
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-gray-500 text-sm">Total Amount</h3>
-          <p className="text-2xl font-bold">${totalAmount.toFixed(2)}</p>
+          <p className="text-2xl font-bold">₹{totalAmount.toFixed(2)}</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-gray-500 text-sm">Average Order Value</h3>
           <p className="text-2xl font-bold">
-            ${totalOrders ? (totalAmount / totalOrders).toFixed(2) : "0.00"}
+            ₹{totalOrders ? (totalAmount / totalOrders).toFixed(2) : "0.00"}
           </p>
         </div>
       </div>
@@ -236,7 +236,7 @@ export default function DeliveredOrders() {
                       {order.distance}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${Number(order.total_amount).toFixed(2)}
+                      ₹{Number(order.total_amount).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span

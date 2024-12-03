@@ -77,7 +77,7 @@ export default function CustomerStats() {
           Average Order Value
         </h3>
         <p className="text-2xl font-bold">
-          ${stats.averageOrderValue.toFixed(2)}
+          ₹{stats.averageOrderValue.toFixed(2)}
         </p>
       </div>
     </div>

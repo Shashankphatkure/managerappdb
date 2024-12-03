@@ -46,7 +46,7 @@ export default function PaymentsPage() {
   const paymentStats = [
     {
       title: "Total Payments",
-      value: `$${payments.reduce((sum, p) => sum + (p.finalamount || 0), 0)}`,
+      value: `₹${payments.reduce((sum, p) => sum + (p.finalamount || 0), 0)}`,
       icon: BanknotesIcon,
       color: "blue",
     },
@@ -160,16 +160,16 @@ export default function PaymentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        ${payment.finalamount}
+                        ₹{payment.finalamount}
                       </div>
                       {payment.advance > 0 && (
                         <div className="text-xs text-gray-500">
-                          Advance: ${payment.advance}
+                          Advance: ₹{payment.advance}
                         </div>
                       )}
                       {payment.penalty > 0 && (
                         <div className="text-xs text-red-500">
-                          Penalty: ${payment.penalty}
+                          Penalty: ₹{payment.penalty}
                         </div>
                       )}
                     </td>
