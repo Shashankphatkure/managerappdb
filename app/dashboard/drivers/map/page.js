@@ -4,7 +4,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import DashboardLayout from "../../components/DashboardLayout";
 import { ArrowLeftIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { GoogleMap, Marker } from "@react-google-maps/api";
+import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
 
 const mapContainerStyle = {
   width: "100%",
@@ -19,6 +19,7 @@ const defaultCenter = {
 export default function DriversMapPage() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDriver, setSelectedDriver] = useState(null);
   const supabase = createClientComponentClient();
 
   const loadActiveDrivers = async () => {
@@ -31,6 +32,7 @@ export default function DriversMapPage() {
           id,
           full_name,
           location,
+          phone,
           status,
           is_active
         `
@@ -152,9 +154,23 @@ export default function DriversMapPage() {
                     key={driver.id}
                     position={position}
                     title={driver.full_name}
+                    onClick={() => setSelectedDriver(driver)}
                   />
                 );
               })}
+
+              {selectedDriver && (
+                <InfoWindow
+                  position={getDriverPosition(selectedDriver.location)}
+                  onCloseClick={() => setSelectedDriver(null)}
+                >
+                  <div>
+                    <h2>{selectedDriver.full_name}</h2>
+                    <p>Location: {selectedDriver.location}</p>
+                    <p>Phone: {selectedDriver.phone}</p>
+                  </div>
+                </InfoWindow>
+              )}
             </GoogleMap>
           </div>
         )}
