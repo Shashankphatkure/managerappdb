@@ -16,6 +16,7 @@ import {
   CurrencyDollarIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
+import Image from "next/image";
 
 export default function ViewOrderPage({ params }) {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function ViewOrderPage({ params }) {
   const supabase = createClientComponentClient();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [proofImage, setProofImage] = useState(null);
 
   useEffect(() => {
     fetchOrder();
@@ -44,6 +46,15 @@ export default function ViewOrderPage({ params }) {
 
       if (error) throw error;
       setOrder(data);
+
+      if (data.photo_proof) {
+        const { data: imageUrl, error: imageError } = supabase.storage
+          .from("delivery-proofs")
+          .getPublicUrl(data.photo_proof);
+
+        if (imageError) throw imageError;
+        setProofImage(imageUrl.publicUrl);
+      }
     } catch (error) {
       console.error("Error fetching order:", error);
       alert("Error fetching order details");
@@ -245,6 +256,26 @@ export default function ViewOrderPage({ params }) {
         </div>
       ) : (
         <p className="text-gray-500">No driver assigned yet</p>
+      ),
+    },
+    {
+      title: "Delivery Proof",
+      icon: DocumentTextIcon,
+      content: (
+        <div className="space-y-4">
+          {proofImage ? (
+            <div className="relative h-48 w-full">
+              <Image
+                src={proofImage}
+                alt="Delivery Proof"
+                fill
+                className="object-contain rounded-lg"
+              />
+            </div>
+          ) : (
+            <p className="text-gray-500">No delivery proof uploaded yet</p>
+          )}
+        </div>
       ),
     },
   ];
