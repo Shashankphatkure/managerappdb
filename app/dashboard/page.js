@@ -1,5 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useRouter } from "next/navigation";
 import {
   HomeIcon,
   ShoppingBagIcon,
@@ -15,6 +17,15 @@ const DashboardStats = dynamic(() => import("./components/DashboardStats"), {
 });
 
 export default function Dashboard() {
+  const router = useRouter();
+  const supabase = createClientComponentClient();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
+
   const dashboardCards = [
     {
       title: "Stores",
@@ -63,11 +74,21 @@ export default function Dashboard() {
   return (
     <div className="p-8 min-h-screen bg-[#faf9f8]">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-light mb-2 text-[#323130]">
-            Dashboard Overview
-          </h1>
-          <p className="text-[#605e5c]">Welcome to your management dashboard</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-light mb-2 text-[#323130]">
+              Dashboard Overview
+            </h1>
+            <p className="text-[#605e5c]">
+              Welcome to your management dashboard
+            </p>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="px-4 py-2 bg-[#0078d4] text-white rounded-md hover:bg-[#106ebe] transition-colors"
+          >
+            Sign Out
+          </button>
         </div>
 
         <div className="mb-12">
