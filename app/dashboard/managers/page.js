@@ -15,6 +15,8 @@ export default function ManagersPage() {
   const [managers, setManagers] = useState([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClientComponentClient();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedManager, setSelectedManager] = useState(null);
 
   useEffect(() => {
     fetchManagers();
@@ -80,6 +82,83 @@ export default function ManagersPage() {
     return `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
       roleConfig[role] || "bg-gray-100 text-gray-800"
     }`;
+  };
+
+  const handleEditClick = (manager) => {
+    setSelectedManager(manager);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedManager(null);
+  };
+
+  const handleSaveChanges = async (updatedManager) => {
+    try {
+      const { error } = await supabase
+        .from("managers")
+        .update(updatedManager)
+        .eq("id", updatedManager.id);
+
+      if (error) throw error;
+
+      setManagers(
+        managers.map((manager) =>
+          manager.id === updatedManager.id ? updatedManager : manager
+        )
+      );
+
+      handleModalClose();
+    } catch (error) {
+      console.error("Error updating manager:", error);
+      alert("Error updating manager");
+    }
+  };
+
+  const Modal = ({ children, onClose }) => {
+    return (
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+          <div
+            className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+            onClick={onClose}
+          ></div>
+          <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+            <div className="absolute right-0 top-0 pr-4 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                <span className="sr-only">Close</span>
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="sm:flex sm:items-start">
+              <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                <h3 className="text-lg font-semibold leading-6 text-gray-900 mb-4">
+                  Edit Manager Profile
+                </h3>
+                {children}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -158,7 +237,8 @@ export default function ManagersPage() {
                         </span>
                       </div>
                       <Link
-                        href={`/dashboard/managers/${manager.id}`}
+                        href="#"
+                        onClick={() => handleEditClick(manager)}
                         className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors duration-200"
                       >
                         Edit Profile
@@ -210,6 +290,100 @@ export default function ManagersPage() {
           </div>
         )}
       </div>
+
+      {isModalOpen && (
+        <Modal onClose={handleModalClose}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveChanges(selectedManager);
+            }}
+            className="space-y-6"
+          >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                value={selectedManager.email}
+                onChange={(e) =>
+                  setSelectedManager({
+                    ...selectedManager,
+                    email: e.target.value,
+                  })
+                }
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Full Name
+              </label>
+              <input
+                type="text"
+                value={selectedManager.full_name}
+                onChange={(e) =>
+                  setSelectedManager({
+                    ...selectedManager,
+                    full_name: e.target.value,
+                  })
+                }
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone
+              </label>
+              <input
+                type="text"
+                value={selectedManager.phone}
+                onChange={(e) =>
+                  setSelectedManager({
+                    ...selectedManager,
+                    phone: e.target.value,
+                  })
+                }
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Role
+              </label>
+              <select
+                value={selectedManager.role}
+                onChange={(e) =>
+                  setSelectedManager({
+                    ...selectedManager,
+                    role: e.target.value,
+                  })
+                }
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+              >
+                <option value="admin">Admin</option>
+                <option value="supervisor">Supervisor</option>
+              </select>
+            </div>
+            <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+              <button
+                type="submit"
+                className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto"
+              >
+                Save Changes
+              </button>
+              <button
+                type="button"
+                onClick={handleModalClose}
+                className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </DashboardLayout>
   );
 }
