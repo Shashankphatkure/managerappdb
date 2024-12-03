@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -17,10 +17,34 @@ import {
   UserCircleIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function ClientLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [userData, setUserData] = useState(null);
   const pathname = usePathname();
+  const supabase = createClientComponentClient();
+
+  useEffect(() => {
+    async function getUserData() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data: managerData } = await supabase
+          .from("managers")
+          .select("full_name, role")
+          .eq("auth_id", user.id)
+          .single();
+
+        if (managerData) {
+          setUserData(managerData);
+        }
+      }
+    }
+
+    getUserData();
+  }, []);
 
   const menuItems = [
     {
@@ -116,8 +140,12 @@ export default function ClientLayout({ children }) {
                 isSidebarOpen ? "opacity-100" : "opacity-0 hidden"
               }`}
             >
-              <p className="font-medium text-gray-700">John Doe</p>
-              <p className="text-sm text-gray-500">Admin</p>
+              <p className="font-medium text-gray-700">
+                {userData?.full_name || "Loading..."}
+              </p>
+              <p className="text-sm text-gray-500">
+                {userData?.role || "Loading..."}
+              </p>
             </div>
           </div>
         </div>

@@ -12,6 +12,7 @@ import {
   ArrowLeftIcon,
   ExclamationCircleIcon,
   ShieldCheckIcon,
+  LockClosedIcon,
 } from "@heroicons/react/24/outline";
 
 // Reusable Input Component
@@ -56,6 +57,8 @@ export default function NewManagerPage() {
     phone: "",
     role: "supervisor",
     is_active: true,
+    password: "",
+    confirm_password: "",
   });
 
   async function handleSubmit(e) {
@@ -63,10 +66,38 @@ export default function NewManagerPage() {
     setLoading(true);
 
     try {
+      // Validate passwords match
+      if (manager.password !== manager.confirm_password) {
+        throw new Error("Passwords do not match");
+      }
+
+      // Create new user account
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: manager.email,
+        password: manager.password,
+        options: {
+          data: {
+            full_name: manager.full_name,
+            role: manager.role,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+
       // Insert into managers table
       const { data: newManager, error: insertError } = await supabase
         .from("managers")
-        .insert([manager])
+        .insert([
+          {
+            full_name: manager.full_name,
+            email: manager.email,
+            phone: manager.phone,
+            role: manager.role,
+            is_active: manager.is_active,
+            auth_id: authData.user.id,
+          },
+        ])
         .select()
         .single();
 
@@ -148,6 +179,52 @@ export default function NewManagerPage() {
                     }
                     placeholder="john@example.com"
                     required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Security */}
+            <div className="p-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                <LockClosedIcon className="w-6 h-6 text-yellow-500" />
+                Security
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <InputField
+                    icon={LockClosedIcon}
+                    type="password"
+                    value={manager.password}
+                    onChange={(e) =>
+                      setManager({ ...manager, password: e.target.value })
+                    }
+                    placeholder="Enter password"
+                    required
+                    minLength={6}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Confirm Password
+                  </label>
+                  <InputField
+                    icon={LockClosedIcon}
+                    type="password"
+                    value={manager.confirm_password}
+                    onChange={(e) =>
+                      setManager({
+                        ...manager,
+                        confirm_password: e.target.value,
+                      })
+                    }
+                    placeholder="Confirm password"
+                    required
+                    minLength={6}
                   />
                 </div>
               </div>
