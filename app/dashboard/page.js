@@ -69,6 +69,12 @@ export default function Dashboard() {
       description: "Process driver payments",
       icon: CurrencyDollarIcon,
     },
+    {
+      title: "Managers",
+      link: "/dashboard/managers",
+      description: "Manage system administrators",
+      icon: UserGroupIcon,
+    },
   ];
 
   return (

@@ -9,7 +9,6 @@ import {
   PlusIcon,
   EnvelopeIcon,
   PhoneIcon,
-  MapPinIcon,
 } from "@heroicons/react/24/outline";
 
 export default function ManagersPage() {
@@ -37,6 +36,41 @@ export default function ManagersPage() {
       setLoading(false);
     }
   }
+
+  const handleToggleActive = async (managerId, currentStatus) => {
+    try {
+      const { error } = await supabase
+        .from("managers")
+        .update({ is_active: !currentStatus })
+        .eq("id", managerId);
+
+      if (error) throw error;
+
+      // Update local state
+      setManagers(
+        managers.map((manager) =>
+          manager.id === managerId
+            ? { ...manager, is_active: !currentStatus }
+            : manager
+        )
+      );
+
+      // Create notification
+      await supabase.from("notifications").insert([
+        {
+          title: "Manager Status Updated",
+          message: `Manager status has been ${
+            !currentStatus ? "activated" : "deactivated"
+          }`,
+          type: "manager_updated",
+          severity: "info",
+        },
+      ]);
+    } catch (error) {
+      console.error("Error toggling manager status:", error);
+      alert("Error updating manager status");
+    }
+  };
 
   const getRoleBadge = (role) => {
     const roleConfig = {
@@ -83,11 +117,6 @@ export default function ManagersPage() {
                         <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center border-2 border-gray-100">
                           <UserGroupIcon className="h-8 w-8 text-blue-500" />
                         </div>
-                        <span
-                          className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white ${
-                            manager.is_active ? "bg-green-400" : "bg-gray-300"
-                          }`}
-                        />
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">
@@ -97,22 +126,37 @@ export default function ManagersPage() {
                           <span className="text-sm text-gray-500">
                             ID: {manager.id.slice(0, 8)}
                           </span>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              manager.is_active
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {manager.is_active ? "Active" : "Inactive"}
-                          </span>
                           <span className={getRoleBadge(manager.role)}>
                             {manager.role}
                           </span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
+                      {/* Toggle Switch */}
+                      <div className="flex items-center">
+                        <button
+                          onClick={() =>
+                            handleToggleActive(manager.id, manager.is_active)
+                          }
+                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                            manager.is_active ? "bg-blue-600" : "bg-gray-200"
+                          }`}
+                          role="switch"
+                          aria-checked={manager.is_active}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              manager.is_active
+                                ? "translate-x-5"
+                                : "translate-x-0"
+                            }`}
+                          />
+                        </button>
+                        <span className="ml-2 text-sm text-gray-500">
+                          {manager.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </div>
                       <Link
                         href={`/dashboard/managers/${manager.id}`}
                         className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors duration-200"
