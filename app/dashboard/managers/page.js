@@ -366,6 +366,123 @@ export default function ManagersPage() {
                 <option value="supervisor">Supervisor</option>
               </select>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Alternate Phone
+                </label>
+                <input
+                  type="text"
+                  value={selectedManager.alternate_phone || ""}
+                  onChange={(e) =>
+                    setSelectedManager({
+                      ...selectedManager,
+                      alternate_phone: e.target.value,
+                    })
+                  }
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Address
+                </label>
+                <textarea
+                  value={selectedManager.address || ""}
+                  onChange={(e) =>
+                    setSelectedManager({
+                      ...selectedManager,
+                      address: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Emergency Contact
+                </label>
+                <input
+                  type="text"
+                  value={selectedManager.emergency_contact || ""}
+                  onChange={(e) =>
+                    setSelectedManager({
+                      ...selectedManager,
+                      emergency_contact: e.target.value,
+                    })
+                  }
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Aadhaar Number
+                </label>
+                <input
+                  type="text"
+                  value={selectedManager.aadhaar_number || ""}
+                  onChange={(e) =>
+                    setSelectedManager({
+                      ...selectedManager,
+                      aadhaar_number: e.target.value,
+                    })
+                  }
+                  maxLength={12}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  PAN Number
+                </label>
+                <input
+                  type="text"
+                  value={selectedManager.pan_number || ""}
+                  onChange={(e) =>
+                    setSelectedManager({
+                      ...selectedManager,
+                      pan_number: e.target.value,
+                    })
+                  }
+                  maxLength={10}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bank Account Number
+                </label>
+                <input
+                  type="text"
+                  value={selectedManager.bank_account_number || ""}
+                  onChange={(e) =>
+                    setSelectedManager({
+                      ...selectedManager,
+                      bank_account_number: e.target.value,
+                    })
+                  }
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Base Salary
+                </label>
+                <input
+                  type="number"
+                  value={selectedManager.base_salary || ""}
+                  onChange={(e) =>
+                    setSelectedManager({
+                      ...selectedManager,
+                      base_salary: e.target.value,
+                    })
+                  }
+                  step="0.01"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                />
+              </div>
+            </div>
             <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
               <button
                 type="submit"

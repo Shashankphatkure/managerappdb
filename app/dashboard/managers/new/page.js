@@ -59,6 +59,13 @@ export default function NewManagerPage() {
     is_active: true,
     password: "",
     confirm_password: "",
+    address: "",
+    emergency_contact: "",
+    alternate_phone: "",
+    aadhaar_number: "",
+    pan_number: "",
+    bank_account_number: "",
+    base_salary: "",
   });
 
   async function handleSubmit(e) {
@@ -179,6 +186,118 @@ export default function NewManagerPage() {
                     }
                     placeholder="john@example.com"
                     required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Alternate Phone
+                  </label>
+                  <InputField
+                    icon={PhoneIcon}
+                    type="tel"
+                    value={manager.alternate_phone}
+                    onChange={(e) =>
+                      setManager({
+                        ...manager,
+                        alternate_phone: e.target.value,
+                      })
+                    }
+                    placeholder="+1 (555) 000-0000"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Address
+                  </label>
+                  <textarea
+                    value={manager.address}
+                    onChange={(e) =>
+                      setManager({ ...manager, address: e.target.value })
+                    }
+                    rows={3}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Emergency Contact
+                  </label>
+                  <InputField
+                    icon={PhoneIcon}
+                    type="tel"
+                    value={manager.emergency_contact}
+                    onChange={(e) =>
+                      setManager({
+                        ...manager,
+                        emergency_contact: e.target.value,
+                      })
+                    }
+                    placeholder="+1 (555) 000-0000"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Aadhaar Number
+                  </label>
+                  <InputField
+                    type="text"
+                    value={manager.aadhaar_number}
+                    onChange={(e) =>
+                      setManager({ ...manager, aadhaar_number: e.target.value })
+                    }
+                    maxLength={12}
+                    placeholder="1234 5678 9012"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    PAN Number
+                  </label>
+                  <InputField
+                    type="text"
+                    value={manager.pan_number}
+                    onChange={(e) =>
+                      setManager({ ...manager, pan_number: e.target.value })
+                    }
+                    maxLength={10}
+                    placeholder="ABCDE1234F"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Bank Account Number
+                  </label>
+                  <InputField
+                    type="text"
+                    value={manager.bank_account_number}
+                    onChange={(e) =>
+                      setManager({
+                        ...manager,
+                        bank_account_number: e.target.value,
+                      })
+                    }
+                    placeholder="1234567890"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Base Salary
+                  </label>
+                  <InputField
+                    type="number"
+                    value={manager.base_salary}
+                    onChange={(e) =>
+                      setManager({ ...manager, base_salary: e.target.value })
+                    }
+                    step="0.01"
+                    placeholder="50000.00"
                   />
                 </div>
               </div>
