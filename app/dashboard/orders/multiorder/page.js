@@ -215,6 +215,25 @@ export default function MultiOrderPage() {
 
       if (error) throw error;
 
+      // After successfully creating orders, create notifications for the driver
+      const notifications = optimizedRoutes.map((route, index) => ({
+        recipient_type: "driver",
+        recipient_id: selectedDriver.id,
+        title: "New Delivery Assignment",
+        message: `New delivery assigned from ${selectedStore.name} to ${
+          route.customer.full_name
+        }. Delivery sequence: ${index + 1}`,
+        type: "order",
+        delivery_attempted: false,
+      }));
+
+      // Insert notifications
+      const { error: notificationError } = await supabase
+        .from("notifications")
+        .insert(notifications);
+
+      if (notificationError) throw notificationError;
+
       alert(`Successfully created ${orders.length} orders!`);
       setShowRouteConfirmation(false);
       setOptimizedRoutes([]);
