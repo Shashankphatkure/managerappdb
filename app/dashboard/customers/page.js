@@ -9,6 +9,8 @@ import {
   MagnifyingGlassIcon,
   FunnelIcon,
   ArrowsUpDownIcon,
+  MapIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
 
 export default function CustomersPage() {
@@ -52,7 +54,27 @@ export default function CustomersPage() {
   }
 
   return (
-    <DashboardLayout title="Customer Management">
+    <DashboardLayout
+      title="Customer Management"
+      actions={
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/customers/map"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
+          >
+            <MapIcon className="w-5 h-5" />
+            View Map
+          </Link>
+          <Link
+            href="/dashboard/customers/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+          >
+            <PlusIcon className="w-5 h-5" />
+            Add New Customer
+          </Link>
+        </div>
+      }
+    >
       <div className="p-6">
         <div className="mb-6">
           <CustomerStats />
@@ -70,12 +92,6 @@ export default function CustomersPage() {
               className="p-2 border rounded"
             />
           </div>
-          <Link
-            href="/dashboard/customers/new"
-            className="dashboard-button-primary"
-          >
-            Add New Customer
-          </Link>
         </div>
 
         {loading ? (
