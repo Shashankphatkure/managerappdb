@@ -13,6 +13,10 @@ import {
   ExclamationCircleIcon,
   ShieldCheckIcon,
   LockClosedIcon,
+  HomeIcon,
+  IdentificationIcon,
+  BanknotesIcon,
+  BuildingLibraryIcon,
 } from "@heroicons/react/24/outline";
 
 // Reusable Input Component
@@ -211,13 +215,13 @@ export default function NewManagerPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Address
                   </label>
-                  <textarea
+                  <InputField
+                    icon={HomeIcon}
                     value={manager.address}
                     onChange={(e) =>
                       setManager({ ...manager, address: e.target.value })
                     }
-                    rows={3}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                    placeholder="Enter address"
                   />
                 </div>
 
@@ -244,6 +248,7 @@ export default function NewManagerPage() {
                     Aadhaar Number
                   </label>
                   <InputField
+                    icon={IdentificationIcon}
                     type="text"
                     value={manager.aadhaar_number}
                     onChange={(e) =>
@@ -259,6 +264,7 @@ export default function NewManagerPage() {
                     PAN Number
                   </label>
                   <InputField
+                    icon={IdentificationIcon}
                     type="text"
                     value={manager.pan_number}
                     onChange={(e) =>
@@ -274,6 +280,7 @@ export default function NewManagerPage() {
                     Bank Account Number
                   </label>
                   <InputField
+                    icon={BuildingLibraryIcon}
                     type="text"
                     value={manager.bank_account_number}
                     onChange={(e) =>
@@ -291,6 +298,7 @@ export default function NewManagerPage() {
                     Base Salary
                   </label>
                   <InputField
+                    icon={BanknotesIcon}
                     type="number"
                     value={manager.base_salary}
                     onChange={(e) =>
