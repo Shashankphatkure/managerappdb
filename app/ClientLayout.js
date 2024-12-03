@@ -19,6 +19,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import SearchOverlay from "./components/SearchOverlay";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function ClientLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -46,6 +48,25 @@ export default function ClientLayout({ children }) {
     }
 
     getUserData();
+
+    // Set up real-time subscription for notifications
+    const channel = supabase
+      .channel("notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications" },
+        (payload) => {
+          console.log("New notification:", payload.new);
+          const { title, message } = payload.new;
+          toast.info(`${title}: ${message}`);
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on component unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const menuItems = [
