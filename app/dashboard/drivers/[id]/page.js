@@ -237,15 +237,20 @@ export default function DriverDetailPage({ params }) {
       onChange: (value) => setDriver({ ...driver, home_phone_number: value }),
       icon: PhoneIcon,
     },
-    {
-      label: "Password",
-      type: "password",
-      value: driver.password,
-      onChange: (value) => setDriver({ ...driver, password: value }),
-      icon: KeyIcon,
-      required: true,
-    },
-  ];
+  ].concat(
+    driverId === "new"
+      ? [
+          {
+            label: "Password",
+            type: "password",
+            value: driver.password,
+            onChange: (value) => setDriver({ ...driver, password: value }),
+            icon: KeyIcon,
+            required: true,
+          },
+        ]
+      : []
+  );
 
   return (
     <DashboardLayout
