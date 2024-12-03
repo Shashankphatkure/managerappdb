@@ -14,11 +14,27 @@ export default function Login() {
   const handleSignIn = async (e) => {
     e.preventDefault();
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+      if (authError) throw authError;
+
+      const { data: managerData, error: managerError } = await supabase
+        .from("managers")
+        .select("*")
+        .eq("email", email)
+        .eq("is_active", true)
+        .single();
+
+      if (managerError || !managerData) {
+        await supabase.auth.signOut();
+        throw new Error(
+          "Unauthorized access. Please contact your administrator."
+        );
+      }
+
       router.push("/dashboard");
       router.refresh();
     } catch (error) {
