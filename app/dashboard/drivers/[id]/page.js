@@ -18,6 +18,7 @@ import {
   BanknotesIcon,
   BuildingLibraryIcon,
   InformationCircleIcon,
+  KeyIcon,
 } from "@heroicons/react/24/outline";
 
 export default function DriverDetailPage({ params }) {
@@ -43,6 +44,7 @@ export default function DriverDetailPage({ params }) {
     home_phone_number: "",
     photo: "",
     is_active: true,
+    password: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,8 +80,30 @@ export default function DriverDetailPage({ params }) {
 
     try {
       if (driverId === "new") {
-        const { error } = await supabase.from("users").insert([driver]);
-        if (error) throw error;
+        const { data: authData, error: authError } = await supabase.auth.signUp(
+          {
+            email: driver.email,
+            password: driver.password,
+            options: {
+              data: {
+                full_name: driver.full_name,
+              },
+            },
+          }
+        );
+
+        if (authError) throw authError;
+
+        const { error: dbError } = await supabase.from("users").insert([
+          {
+            ...driver,
+            auth_id: authData.user.id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ]);
+
+        if (dbError) throw dbError;
       } else {
         const { error } = await supabase
           .from("users")
@@ -212,6 +236,14 @@ export default function DriverDetailPage({ params }) {
       value: driver.home_phone_number,
       onChange: (value) => setDriver({ ...driver, home_phone_number: value }),
       icon: PhoneIcon,
+    },
+    {
+      label: "Password",
+      type: "password",
+      value: driver.password,
+      onChange: (value) => setDriver({ ...driver, password: value }),
+      icon: KeyIcon,
+      required: true,
     },
   ];
 
