@@ -6,6 +6,7 @@ import Link from "next/link";
 import DashboardLayout from "../components/DashboardLayout";
 import {
   UserGroupIcon,
+  MapIcon,
   PlusIcon,
   TruckIcon,
   ChevronDownIcon,
@@ -19,6 +20,7 @@ import {
   SwatchIcon,
   PhoneIcon,
 } from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
 
 export default function DriversPage() {
   const [drivers, setDrivers] = useState([]);
@@ -26,6 +28,7 @@ export default function DriversPage() {
   const [expandedDriver, setExpandedDriver] = useState(null);
   const [driverOrders, setDriverOrders] = useState({});
   const supabase = createClientComponentClient();
+  const router = useRouter();
 
   useEffect(() => {
     const loadDrivers = async () => {
@@ -112,18 +115,31 @@ export default function DriversPage() {
     }
   };
 
+  function handleShowActiveDriversOnMap() {
+    router.push("/dashboard/drivers/map");
+  }
+
   return (
     <DashboardLayout
       title="Delivery Drivers"
       subtitle={`Total Drivers: ${drivers.length}`}
       actions={
-        <Link
-          href="/dashboard/drivers/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-        >
-          <PlusIcon className="w-5 h-5" />
-          Add New Driver
-        </Link>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleShowActiveDriversOnMap}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
+          >
+            <MapIcon className="w-5 h-5" />
+            Active Drivers
+          </button>
+          <Link
+            href="/dashboard/drivers/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+          >
+            <PlusIcon className="w-5 h-5" />
+            Add New Driver
+          </Link>
+        </div>
       }
     >
       <div className="p-6">
