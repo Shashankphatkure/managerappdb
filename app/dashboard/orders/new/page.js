@@ -412,7 +412,7 @@ export default function NewOrderPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Amount (₹)
+                    Cash to be collected
                   </label>
                   <input
                     type="number"
@@ -430,18 +430,12 @@ export default function NewOrderPage() {
                   </label>
                   <select
                     name="payment_method"
-                    value={formData.payment_method}
+                    value={formData.payment_method || "cash"}
                     onChange={handleInputChange}
                     className="dashboard-input mt-1"
                     required
                   >
-                    <option value="">Select method...</option>
-                    <option value="monthly_subscription">
-                      Monthly Subscription
-                    </option>
                     <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="upi">UPI</option>
                   </select>
                 </div>
               </div>
