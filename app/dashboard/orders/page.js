@@ -251,6 +251,9 @@ export default function OrdersPage() {
                       Delivery
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Timing
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Amount
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -303,6 +306,23 @@ export default function OrdersPage() {
                         <p className="text-sm text-gray-900 line-clamp-2">
                           {order.destination}
                         </p>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {order.created_at && new Date(order.created_at).toLocaleString([], {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                          {order.time && (
+                            <p className="text-sm text-gray-500">
+                              Est. Time: {order.time}
+                            </p>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <p className="text-sm font-medium text-gray-900">
