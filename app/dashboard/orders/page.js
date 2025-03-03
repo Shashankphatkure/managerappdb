@@ -11,6 +11,7 @@ import {
   PlusIcon,
   DocumentDuplicateIcon,
   MapIcon,
+  DocumentCheckIcon,
 } from "@heroicons/react/24/outline";
 
 const getPaymentStatusColor = (status) => {
@@ -22,16 +23,55 @@ const getPaymentStatusColor = (status) => {
   return colors[status] || "bg-gray-100 text-gray-800";
 };
 
-const getStatusColor = (status) => {
-  const colors = {
-    pending: "bg-yellow-100 text-yellow-800",
-    confirmed: "bg-blue-100 text-blue-800",
-    accepted: "bg-purple-100 text-purple-800",
-    picked_up: "bg-indigo-100 text-indigo-800",
-    delivered: "bg-green-100 text-green-800",
-    cancelled: "bg-red-100 text-red-800",
+const getStatusStyle = (status) => {
+  const styles = {
+    confirmed: {
+      bg: "bg-indigo-100",
+      text: "text-indigo-800",
+      label: "Confirmed",
+    },
+    accepted: {
+      bg: "bg-blue-100",
+      text: "text-blue-800",
+      label: "Accepted",
+    },
+    picked_up: {
+      bg: "bg-yellow-100",
+      text: "text-yellow-800",
+      label: "Picked Up",
+    },
+    on_way: {
+      bg: "bg-purple-100",
+      text: "text-purple-800",
+      label: "On The Way",
+    },
+    reached: {
+      bg: "bg-green-100",
+      text: "text-green-800",
+      label: "Reached",
+    },
+    delivered: {
+      bg: "bg-green-100",
+      text: "text-green-800",
+      label: "Delivered",
+    },
+    cancelled: {
+      bg: "bg-red-100",
+      text: "text-red-800",
+      label: "Cancelled",
+    },
+    pending: {
+      bg: "bg-yellow-100",
+      text: "text-yellow-800",
+      label: "Pending",
+    },
   };
-  return colors[status] || "bg-gray-100 text-gray-800";
+  return styles[status] || styles.pending;
+};
+
+const getStatusColor = (status) => {
+  const styles = getStatusStyle(status);
+  return `${styles.bg} ${styles.text}`;
 };
 
 export default function OrdersPage() {
@@ -39,6 +79,13 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("pending");
   const [stats, setStats] = useState({
+    pending: 0,
+    confirmed: 0,
+    accepted: 0,
+    on_way: 0,
+    reached: 0,
+    delivered: 0,
+    cancelled: 0,
     pendingOrders: 0,
     activeDeliveries: 0,
     completedToday: 0,
@@ -56,17 +103,19 @@ export default function OrdersPage() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Get pending orders count
-      const { count: pendingCount } = await supabase
-        .from("orders")
-        .select("*", { count: "exact" })
-        .eq("status", "pending");
+      // Get counts for all statuses
+      const statuses = ["pending", "confirmed", "accepted", "on_way", "reached", "delivered", "cancelled"];
+      const statusCounts = {};
 
-      // Get active deliveries count (picked_up status)
-      const { count: activeCount } = await supabase
-        .from("orders")
-        .select("*", { count: "exact" })
-        .eq("status", "picked_up");
+      // Fetch counts for each status
+      for (const status of statuses) {
+        const { count } = await supabase
+          .from("orders")
+          .select("*", { count: "exact" })
+          .eq("status", status);
+        
+        statusCounts[status] = count || 0;
+      }
 
       // Get today's completed orders and revenue
       const { data: todayOrders } = await supabase
@@ -83,8 +132,9 @@ export default function OrdersPage() {
         ) || 0;
 
       setStats({
-        pendingOrders: pendingCount || 0,
-        activeDeliveries: activeCount || 0,
+        ...statusCounts,
+        pendingOrders: statusCounts.pending || 0,
+        activeDeliveries: statusCounts.on_way || 0,
         completedToday,
         todayRevenue,
       });
@@ -119,21 +169,21 @@ export default function OrdersPage() {
   const statsCards = [
     {
       title: "Pending Orders",
-      value: stats.pendingOrders,
+      value: stats.pending,
       icon: ClockIcon,
-      color: "yellow",
+      style: getStatusStyle("pending"),
     },
     {
-      title: "Active Deliveries",
-      value: stats.activeDeliveries,
+      title: "Confirmed Orders",
+      value: stats.confirmed,
+      icon: DocumentCheckIcon,
+      style: getStatusStyle("confirmed"),
+    },
+    {
+      title: "On The Way",
+      value: stats.on_way,
       icon: TruckIcon,
-      color: "blue",
-    },
-    {
-      title: "Today's Completed",
-      value: stats.completedToday,
-      icon: CheckCircleIcon,
-      color: "green",
+      style: getStatusStyle("on_way"),
     },
     {
       title: "Today's Revenue",
@@ -187,8 +237,8 @@ export default function OrdersPage() {
                     {card.value}
                   </p>
                 </div>
-                <div className={`p-3 rounded-xl bg-${card.color}-50`}>
-                  <card.icon className={`w-6 h-6 text-${card.color}-600`} />
+                <div className={`p-3 rounded-xl ${card.style ? card.style.bg : `bg-${card.color}-50`}`}>
+                  <card.icon className={`w-6 h-6 ${card.style ? card.style.text : `text-${card.color}-600`}`} />
                 </div>
               </div>
             </div>
@@ -196,25 +246,27 @@ export default function OrdersPage() {
         </div>
 
         {/* Status Tabs */}
-        <div className="flex mb-6 bg-[#f3f2f1] rounded-xl p-1.5">
-          {[
-            "pending",
-            "confirmed",
-            "accepted",
-            "picked_up",
-            "delivered",
-            "cancelled",
-          ].map((status) => (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {["pending", "confirmed", "accepted", "on_way", "reached", "delivered", "cancelled"].map((status) => (
             <button
               key={status}
               onClick={() => setActiveTab(status)}
-              className={`flex-1 py-2.5 px-4 rounded-lg capitalize transition-all duration-200 text-sm font-medium ${
+              className={`flex items-center py-2.5 px-4 rounded-lg capitalize transition-all duration-200 text-sm font-medium ${
                 activeTab === status
-                  ? "bg-white shadow-sm text-[#323130]"
-                  : "text-[#605e5c] hover:bg-white/50"
+                  ? `${getStatusStyle(status).bg} ${getStatusStyle(status).text} shadow-sm`
+                  : "bg-white/50 text-[#605e5c] hover:bg-white"
               }`}
             >
-              {status}
+              {getStatusStyle(status).label}
+              {stats[status] > 0 && (
+                <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                  activeTab === status 
+                    ? "bg-white/20" 
+                    : getStatusStyle(status).bg
+                }`}>
+                  {stats[status]}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -344,7 +396,7 @@ export default function OrdersPage() {
                             order.status
                           )}`}
                         >
-                          {order.status}
+                          {getStatusStyle(order.status)?.label || order.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
