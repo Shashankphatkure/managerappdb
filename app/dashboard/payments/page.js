@@ -24,18 +24,36 @@ export default function PaymentsPage() {
 
   async function fetchPayments() {
     try {
-      const { data, error } = await supabase
+      // Fetch payments
+      const { data: paymentsData, error: paymentsError } = await supabase
         .from("driver_payments")
-        .select(
-          `
-          *,
-          delivery_personnel:driverid(full_name, email)
-        `
-        )
+        .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setPayments(data || []);
+      if (paymentsError) throw paymentsError;
+
+      // Get unique driver IDs
+      const driverIds = [...new Set(paymentsData.map(p => p.driverid))];
+      
+      // Fetch driver details if there are any payments
+      if (driverIds.length > 0) {
+        const { data: driversData, error: driversError } = await supabase
+          .from("users")
+          .select("id, full_name, email")
+          .in("id", driverIds);
+
+        if (driversError) throw driversError;
+
+        // Combine the data
+        const paymentsWithDrivers = paymentsData.map(payment => ({
+          ...payment,
+          users: driversData.find(d => d.id === payment.driverid) || null
+        }));
+
+        setPayments(paymentsWithDrivers || []);
+      } else {
+        setPayments(paymentsData || []);
+      }
     } catch (error) {
       console.error("Error fetching payments:", error);
     } finally {
@@ -150,10 +168,10 @@ export default function PaymentsPage() {
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {payment.delivery_personnel?.full_name}
+                            {payment.users?.full_name}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {payment.delivery_personnel?.email}
+                            {payment.users?.email}
                           </div>
                         </div>
                       </div>

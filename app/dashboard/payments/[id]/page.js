@@ -29,41 +29,54 @@ export default function PaymentDetailsPage({ params }) {
 
   async function fetchPaymentDetails() {
     try {
-      const { data, error } = await supabase
+      // Fetch payment data
+      const { data: paymentData, error: paymentError } = await supabase
         .from("driver_payments")
-        .select(
-          `
-          *,
-          delivery_personnel:delivery_personnel(
-            id,
-            full_name,
-            email,
-            phone,
-            bank_account_no,
-            bank_ifsc_code,
-            vehicle_type,
-            vehicle_number
-          )
-        `
-        )
+        .select("*")
         .eq("id", paymentId)
         .single();
 
-      if (error) throw error;
+      if (paymentError) throw paymentError;
+
+      // Fetch driver details
+      const { data: driverData, error: driverError } = await supabase
+        .from("users")
+        .select(
+          `
+          id,
+          full_name,
+          email,
+          phone,
+          bank_account_no,
+          bank_ifsc_code,
+          vehicle_type,
+          vehicle_number
+        `
+        )
+        .eq("id", paymentData.driverid)
+        .single();
+
+      if (driverError) {
+        console.error("Error fetching driver details:", driverError);
+      }
 
       // Fetch processed orders if available
-      if (data.processed_orders && data.processed_orders.length > 0) {
+      if (paymentData.processed_orders && paymentData.processed_orders.length > 0) {
         const { data: ordersData, error: ordersError } = await supabase
           .from("orders")
           .select("*")
-          .in("id", data.processed_orders);
+          .in("id", paymentData.processed_orders);
 
         if (!ordersError) {
           setProcessedOrders(ordersData);
         }
       }
 
-      setPayment(data);
+      // Combine the data
+      setPayment({
+        ...paymentData,
+        delivery_personnel: driverData || null
+      });
     } catch (error) {
       console.error("Error fetching payment details:", error);
     } finally {
@@ -84,15 +97,17 @@ export default function PaymentDetailsPage({ params }) {
       fetchPaymentDetails();
 
       // Send notification
-      await supabase.from("notifications").insert([
-        {
-          recipient_type: "driver",
-          recipient_id: payment.delivery_personnel.id,
-          title: "Payment Status Updated",
-          message: `Your payment status has been updated to ${newStatus}`,
-          type: "payment",
-        },
-      ]);
+      if (payment.delivery_personnel?.id) {
+        await supabase.from("notifications").insert([
+          {
+            recipient_type: "driver",
+            recipient_id: payment.delivery_personnel.id,
+            title: "Payment Status Updated",
+            message: `Your payment status has been updated to ${newStatus}`,
+            type: "payment",
+          },
+        ]);
+      }
     } catch (error) {
       console.error("Error updating payment status:", error);
       alert("Error updating payment status. Please try again.");
