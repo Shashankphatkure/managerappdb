@@ -126,14 +126,8 @@ export default function ManagersPage() {
 
       if (error) throw error;
 
-      // Close both modals first
-      setIsDeleteConfirmOpen(false);
-      setIsModalOpen(false);
-      
-      // Update local state after modals are closed
-      setManagers(prevManagers => 
-        prevManagers.filter(manager => manager.id !== selectedManager.id)
-      );
+      // Update local state
+      setManagers(managers.filter(manager => manager.id !== selectedManager.id));
 
       // Create notification
       await supabase.from("notifications").insert([
@@ -144,9 +138,8 @@ export default function ManagersPage() {
           severity: "warning",
         },
       ]);
-      
-      // Clear selected manager
-      setSelectedManager(null);
+
+      handleModalClose();
     } catch (error) {
       console.error("Error deleting manager:", error);
       alert("Error deleting manager");
