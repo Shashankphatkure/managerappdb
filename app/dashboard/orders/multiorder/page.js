@@ -17,6 +17,7 @@ export default function MultiOrderPage() {
   const [customers, setCustomers] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [selectedCustomers, setSelectedCustomers] = useState([]);
+  const [selectedCustomerAddresses, setSelectedCustomerAddresses] = useState({});
   const [loading, setLoading] = useState(true);
   const [driverSearch, setDriverSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
@@ -93,6 +94,39 @@ export default function MultiOrderPage() {
         .order("full_name");
 
       if (error) throw error;
+      
+      // Initialize selected addresses for each customer (first address by default)
+      const addressMap = {};
+      data.forEach(customer => {
+        // Handle different address formats
+        if (customer.addresses && Array.isArray(customer.addresses) && customer.addresses.length > 0) {
+          // New format
+          addressMap[customer.id] = { 
+            address: customer.addresses[0].address,
+            label: customer.addresses[0].label || 'Address #1'
+          };
+        } else if (customer.homeaddress) {
+          // Old format - prioritize home address
+          addressMap[customer.id] = {
+            address: customer.homeaddress,
+            label: 'Home'
+          };
+        } else if (customer.workaddress) {
+          // Old format - use work address as fallback
+          addressMap[customer.id] = {
+            address: customer.workaddress,
+            label: 'Work'
+          };
+        } else {
+          // No address available
+          addressMap[customer.id] = {
+            address: '',
+            label: 'No Address'
+          };
+        }
+      });
+      
+      setSelectedCustomerAddresses(addressMap);
       setCustomers(data || []);
       setLoading(false);
     } catch (error) {
@@ -118,7 +152,9 @@ export default function MultiOrderPage() {
 
   async function calculateRoutes(store, customers) {
     const origins = [store.address];
-    const destinations = customers.map((customer) => customer.homeaddress);
+    const destinations = customers.map((customer) => 
+      selectedCustomerAddresses[customer.id]?.address || customer.homeaddress || ''
+    );
 
     try {
       console.log("Calculating routes for:", { origins, destinations });
@@ -139,16 +175,16 @@ export default function MultiOrderPage() {
 
       // Match customers with their optimized route legs
       const routeDetails = data.legs.map((leg, index) => {
-        const customer = customers.find(
-          (c) => c.homeaddress === leg.destination
-        );
+        const customer = customers[index]; // Use index to keep customer order consistent
         return {
           customer,
           distance: leg.distance,
           duration: leg.duration,
           origin: leg.origin,
+          destination: leg.destination,
           durationValue: leg.durationValue,
           orderIndex: index + 1,
+          addressLabel: selectedCustomerAddresses[customer.id]?.label || 'Home'
         };
       });
 
@@ -187,7 +223,7 @@ export default function MultiOrderPage() {
         const start =
           index === 0
             ? selectedStore.address
-            : optimizedRoutes[index - 1].customer.homeaddress;
+            : optimizedRoutes[index - 1].destination;
 
         return {
           driverid: selectedDriver.id,
@@ -200,7 +236,7 @@ export default function MultiOrderPage() {
           payment_method: "monthly subscription",
           start: start,
           storeid: selectedStore.id,
-          destination: route.customer.homeaddress || "",
+          destination: route.destination,
           distance: route.distance,
           time: route.duration,
           delivery_sequence: index + 1,
@@ -289,6 +325,38 @@ export default function MultiOrderPage() {
       store.name?.toLowerCase().includes(storeSearch.toLowerCase()) ||
       store.address?.toLowerCase().includes(storeSearch.toLowerCase())
   );
+
+  // Helper function to get all addresses for a customer
+  const getCustomerAddresses = (customer) => {
+    let addresses = [];
+    
+    // If customer has the new addresses array format
+    if (customer?.addresses && Array.isArray(customer.addresses)) {
+      addresses = customer.addresses.map((addr, i) => ({
+        label: addr.label || `Address #${i + 1}`,
+        address: addr.address
+      }));
+    } 
+    // If customer has the old format
+    else {
+      if (customer?.homeaddress) {
+        addresses.push({ label: "Home", address: customer.homeaddress });
+      }
+      if (customer?.workaddress) {
+        addresses.push({ label: "Work", address: customer.workaddress });
+      }
+    }
+    
+    return addresses;
+  };
+  
+  // Handle address change for a customer
+  const handleAddressChange = (customerId, addressData) => {
+    setSelectedCustomerAddresses(prev => ({
+      ...prev,
+      [customerId]: addressData
+    }));
+  };
 
   return (
     <DashboardLayout title="Create Multi-Order">
@@ -466,7 +534,11 @@ export default function MultiOrderPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredCustomers.map((customer) => (
+              {filteredCustomers.map((customer) => {
+                const addresses = getCustomerAddresses(customer);
+                const selectedAddress = selectedCustomerAddresses[customer.id];
+                
+                return (
                 <button
                   key={customer.id}
                   onClick={() => {
@@ -499,29 +571,47 @@ export default function MultiOrderPage() {
                       </div>
                       <div className="mt-2 pt-2 border-t border-gray-100">
                         <div className="mt-1 space-y-1">
-                          {customer.address && (
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Address:</span>{" "}
-                              <span className="line-clamp-2">
-                                {customer.address}
-                              </span>
-                            </p>
-                          )}
-                          {customer.homeaddress && (
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Home Address:</span>{" "}
-                              <span className="line-clamp-2">
-                                {customer.homeaddress}
-                              </span>
-                            </p>
-                          )}
-                          {customer.workaddress && (
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Work Address:</span>{" "}
-                              <span className="line-clamp-2">
-                                {customer.workaddress}
-                              </span>
-                            </p>
+                          {addresses.length > 0 ? (
+                            <div className="mt-1 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-gray-700 flex items-center">
+                                  <MapPinIcon className="w-4 h-4 mr-1 text-blue-600" />
+                                  Delivery Address:
+                                </span>
+                                {addresses.length > 1 && (
+                                  <select 
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => {
+                                      const index = parseInt(e.target.value);
+                                      const addressData = addresses[index];
+                                      handleAddressChange(customer.id, addressData);
+                                    }}
+                                    className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:border-blue-500 focus:ring-blue-500"
+                                    value={addresses.findIndex(a => 
+                                      a.address === selectedAddress?.address && a.label === selectedAddress?.label
+                                    )}
+                                  >
+                                    {addresses.map((addr, idx) => (
+                                      <option key={idx} value={idx}>
+                                        {addr.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
+                              </div>
+                              <div className="bg-gray-50 p-3 rounded-md border border-gray-200 hover:border-blue-300 transition-colors">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="font-medium text-blue-600 text-sm">
+                                    {selectedAddress?.label || 'Address'}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-800 whitespace-pre-line">
+                                  {selectedAddress?.address || 'No address available'}
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-red-500 italic">No address available</p>
                           )}
                         </div>
                       </div>
@@ -538,7 +628,7 @@ export default function MultiOrderPage() {
                     </div>
                   </div>
                 </button>
-              ))}
+              )})}
               {filteredCustomers.length === 0 && (
                 <p className="text-gray-500 col-span-full text-center py-4">
                   No customers found matching your search.
@@ -796,9 +886,11 @@ export default function MultiOrderPage() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">To</p>
+                        <p className="text-sm text-gray-500">
+                          To <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">{route.addressLabel}</span>
+                        </p>
                         <p className="text-base text-gray-900 line-clamp-2">
-                          {route.customer.homeaddress}
+                          {route.destination}
                         </p>
                       </div>
                     </div>
