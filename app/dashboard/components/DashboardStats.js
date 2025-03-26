@@ -103,6 +103,12 @@ export default function DashboardStats() {
       color: "blue",
     },
     {
+      title: "INACTIVE DRIVERS",
+      value: stats.inactiveDrivers,
+      icon: TruckIcon,
+      color: "emerald",
+    },
+    {
       title: "PENDING ORDERS",
       value: stats.pendingOrders,
       icon: ClockIcon,
@@ -119,12 +125,6 @@ export default function DashboardStats() {
       value: stats.pendingPayments,
       icon: BanknotesIcon,
       color: "purple",
-    },
-    {
-      title: "INACTIVE DRIVERS",
-      value: stats.inactiveDrivers,
-      icon: TruckIcon,
-      color: "emerald",
     },
     {
       title: "PENDING PENALTIES",
