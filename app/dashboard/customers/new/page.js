@@ -12,6 +12,8 @@ import {
   CalendarIcon,
   DocumentTextIcon,
   UserCircleIcon,
+  PlusIcon,
+  TrashIcon
 } from "@heroicons/react/24/outline";
 
 // Create a wrapper component for the form
@@ -23,8 +25,7 @@ function CustomerForm({ customerId, isEditMode }) {
     full_name: "",
     email: "",
     phone: "",
-    homeaddress: "",
-    workaddress: "",
+    addresses: [{ label: "Home", address: "" }],
     city: "",
     status: "active",
     ordernote: "",
@@ -48,13 +49,69 @@ function CustomerForm({ customerId, isEditMode }) {
 
       if (error) throw error;
       if (data) {
-        setCustomer(data);
+        // Convert old format to new format if needed
+        if (data.homeaddress || data.workaddress) {
+          const addresses = [];
+          if (data.homeaddress) addresses.push({ label: "Home", address: data.homeaddress });
+          if (data.workaddress) addresses.push({ label: "Work", address: data.workaddress });
+          
+          // Create a new customer object with addresses array
+          const updatedCustomer = {
+            ...data,
+            addresses: addresses
+          };
+          
+          // Remove old address fields
+          delete updatedCustomer.homeaddress;
+          delete updatedCustomer.workaddress;
+          
+          setCustomer(updatedCustomer);
+        } else if (data.addresses) {
+          // New format already exists
+          setCustomer(data);
+        } else {
+          // No addresses at all
+          setCustomer({
+            ...data,
+            addresses: [{ label: "Home", address: "" }]
+          });
+        }
       }
     } catch (error) {
       console.error("Error fetching customer:", error);
       alert("Error fetching customer details. Please try again.");
     }
   }
+
+  const addAddress = () => {
+    if (customer.addresses.length < 5) {
+      setCustomer({
+        ...customer,
+        addresses: [...customer.addresses, { label: "", address: "" }]
+      });
+    }
+  };
+
+  const removeAddress = (index) => {
+    const newAddresses = [...customer.addresses];
+    newAddresses.splice(index, 1);
+    setCustomer({
+      ...customer,
+      addresses: newAddresses
+    });
+  };
+
+  const updateAddressField = (index, field, value) => {
+    const newAddresses = [...customer.addresses];
+    newAddresses[index] = {
+      ...newAddresses[index],
+      [field]: value
+    };
+    setCustomer({
+      ...customer,
+      addresses: newAddresses
+    });
+  };
 
   const formFields = [
     {
@@ -79,20 +136,6 @@ function CustomerForm({ customerId, isEditMode }) {
       value: customer.phone,
       onChange: (value) => setCustomer({ ...customer, phone: value }),
       icon: PhoneIcon,
-    },
-    {
-      label: "Home Address",
-      type: "textarea",
-      value: customer.homeaddress,
-      onChange: (value) => setCustomer({ ...customer, homeaddress: value }),
-      icon: MapPinIcon,
-    },
-    {
-      label: "Work Address",
-      type: "textarea",
-      value: customer.workaddress,
-      onChange: (value) => setCustomer({ ...customer, workaddress: value }),
-      icon: MapPinIcon,
     },
     {
       label: "City",
@@ -142,6 +185,7 @@ function CustomerForm({ customerId, isEditMode }) {
     e.preventDefault();
     setLoading(true);
 
+    // Transform addresses for database storage
     const cleanedCustomer = {
       ...customer,
       subscriptiondays:
@@ -213,11 +257,70 @@ function CustomerForm({ customerId, isEditMode }) {
 
             {/* Address Information Section */}
             <div className="space-y-6 pt-6 border-t border-[#edebe9]">
-              <h3 className="text-sm font-semibold text-[#323130] uppercase tracking-wider">
-                Address Information
-              </h3>
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-semibold text-[#323130] uppercase tracking-wider">
+                  Address Information ({customer.addresses.length}/5)
+                </h3>
+                {customer.addresses.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={addAddress}
+                    className="text-sm text-[#0078d4] flex items-center gap-1 hover:text-[#106ebe] transition-colors"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    Add Address
+                  </button>
+                )}
+              </div>
+              
+              <div className="space-y-6">
+                {customer.addresses.map((addressItem, index) => (
+                  <div key={index} className="p-4 border border-[#edebe9] rounded-lg bg-gray-50">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="text-sm font-medium text-[#323130]">Address #{index + 1}</h4>
+                      {customer.addresses.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeAddress(index)}
+                          className="text-[#d13438] flex items-center text-sm hover:text-red-700 transition-colors"
+                        >
+                          <TrashIcon className="w-4 h-4 mr-1" />
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="md:col-span-1">
+                        <label className="text-sm font-semibold text-[#323130]">
+                          Label
+                        </label>
+                        <input
+                          type="text"
+                          value={addressItem.label}
+                          onChange={(e) => updateAddressField(index, 'label', e.target.value)}
+                          placeholder="e.g. Home, Work, etc."
+                          className="block w-full rounded-lg border border-[#8a8886] pl-3 py-2.5 text-sm focus:border-[#0078d4] focus:ring-[#0078d4] transition-colors mt-1"
+                        />
+                      </div>
+                      <div className="md:col-span-3">
+                        <label className="text-sm font-semibold text-[#323130]">
+                          Address
+                        </label>
+                        <textarea
+                          value={addressItem.address}
+                          onChange={(e) => updateAddressField(index, 'address', e.target.value)}
+                          className="block w-full rounded-lg border border-[#8a8886] pl-3 py-2.5 text-sm focus:border-[#0078d4] focus:ring-[#0078d4] transition-colors mt-1"
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
               <div className="grid grid-cols-1 gap-6">
-                {formFields.slice(3, 6).map((field) => (
+                {formFields.slice(3, 4).map((field) => (
                   <FormField key={field.label} field={field} />
                 ))}
               </div>
@@ -229,7 +332,7 @@ function CustomerForm({ customerId, isEditMode }) {
                 Additional Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {formFields.slice(6).map((field) => (
+                {formFields.slice(4).map((field) => (
                   <FormField key={field.label} field={field} />
                 ))}
               </div>
