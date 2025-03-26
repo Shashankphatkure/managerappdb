@@ -107,6 +107,13 @@ export default function NewManagerPage() {
             role: manager.role,
             is_active: manager.is_active,
             auth_id: authData.user.id,
+            address: manager.address,
+            emergency_contact: manager.emergency_contact,
+            alternate_phone: manager.alternate_phone,
+            aadhaar_number: manager.aadhaar_number,
+            pan_number: manager.pan_number,
+            bank_account_number: manager.bank_account_number,
+            base_salary: manager.base_salary ? parseFloat(manager.base_salary) : null,
           },
         ])
         .select()
