@@ -77,9 +77,10 @@ export default function ClientLayout({ children }) {
       priority: true,
     },
     { path: "/dashboard", label: "Dashboard", icon: ChartBarIcon },
-    { path: "/dashboard/drivers", label: "Drivers", icon: TruckIcon },
-    { path: "/dashboard/orders", label: "Orders", icon: ShoppingBagIcon },
     { path: "/dashboard/customers", label: "Customers", icon: UserGroupIcon },
+    
+    { path: "/dashboard/orders", label: "Orders", icon: ShoppingBagIcon },
+    { path: "/dashboard/drivers", label: "Drivers", icon: TruckIcon },
     { path: "/dashboard/payments", label: "Payments", icon: BanknotesIcon },
     { path: "/dashboard/reports", label: "Reports", icon: ChartBarIcon },
     {
