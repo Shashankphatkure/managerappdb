@@ -75,15 +75,18 @@ export default function StoresPage() {
             : stores.map((store) => (
                 <div key={store.id} className="dashboard-card group">
                   <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold text-[#323130]">
-                        {store.name}
-                      </h3>
-                      {store.description && (
-                        <p className="text-sm text-[#605e5c] mt-1">
-                          {store.description}
-                        </p>
-                      )}
+                    <div className="flex items-center">
+                      <span className="text-3xl mr-3">{store.icon || "🏪"}</span>
+                      <div>
+                        <h3 className="text-xl font-semibold text-[#323130]">
+                          {store.name}
+                        </h3>
+                        {store.description && (
+                          <p className="text-sm text-[#605e5c] mt-1">
+                            {store.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
