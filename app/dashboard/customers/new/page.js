@@ -71,7 +71,7 @@ function CustomerForm({ customerId, isEditMode }) {
       value: customer.email,
       onChange: (value) => setCustomer({ ...customer, email: value }),
       icon: EnvelopeIcon,
-      required: true,
+      required: false,
     },
     {
       label: "Phone",
