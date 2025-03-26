@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -23,6 +23,9 @@ export default function EditStorePage({ params }) {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const unwrappedParams = use(params);
+  const storeId = unwrappedParams.id;
+  
   const [store, setStore] = useState({
     name: "",
     description: "",
@@ -39,7 +42,7 @@ export default function EditStorePage({ params }) {
         const { data, error } = await supabase
           .from("stores")
           .select("*")
-          .eq("id", params.id)
+          .eq("id", storeId)
           .single();
 
         if (error) throw error;
@@ -65,7 +68,7 @@ export default function EditStorePage({ params }) {
     };
 
     fetchStore();
-  }, [params.id, supabase]);
+  }, [storeId, supabase]);
 
   const onEmojiClick = (emojiObject) => {
     setStore({ ...store, icon: emojiObject.emoji });
@@ -143,7 +146,7 @@ export default function EditStorePage({ params }) {
           closing_time: store.closing_time,
           icon: store.icon,
         })
-        .eq("id", params.id);
+        .eq("id", storeId);
 
       if (error) throw error;
       router.push("/dashboard/stores");
