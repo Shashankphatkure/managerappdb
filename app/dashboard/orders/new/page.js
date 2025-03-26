@@ -20,6 +20,7 @@ export default function NewOrderPage() {
   const [customers, setCustomers] = useState([]);
   const [stores, setStores] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerAddresses, setCustomerAddresses] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [calculatingRoute, setCalculatingRoute] = useState(false);
@@ -49,7 +50,7 @@ export default function NewOrderPage() {
     try {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, full_name, phone, homeaddress, workaddress")
+        .select("id, full_name, phone, homeaddress, workaddress, addresses")
         .order("full_name");
 
       if (error) throw error;
@@ -95,12 +96,34 @@ export default function NewOrderPage() {
     const customerId = e.target.value;
     const customer = customers.find((c) => c.id === customerId);
     setSelectedCustomer(customer);
-
+    
+    // Prepare customer addresses array
+    let addresses = [];
+    
+    // If customer has the new addresses array format
+    if (customer?.addresses && Array.isArray(customer.addresses)) {
+      addresses = customer.addresses;
+    } 
+    // If customer has the old format, convert it
+    else {
+      if (customer?.homeaddress) {
+        addresses.push({ label: "Home", address: customer.homeaddress });
+      }
+      if (customer?.workaddress) {
+        addresses.push({ label: "Work", address: customer.workaddress });
+      }
+    }
+    
+    setCustomerAddresses(addresses);
+    
+    // Set the first address as default if available
+    const defaultAddress = addresses.length > 0 ? addresses[0].address : "";
+    
     setFormData((prev) => ({
       ...prev,
       customerid: customerId,
       customername: customer?.full_name || "",
-      destination: customer?.homeaddress || "", // Auto-fill destination with customer's home address
+      destination: defaultAddress
     }));
   };
 
@@ -136,11 +159,13 @@ export default function NewOrderPage() {
     }));
   };
 
-  const handleAddressTypeChange = (e) => {
-    const addressType = e.target.value;
+  const handleAddressChange = (e) => {
+    const addressIndex = parseInt(e.target.value);
+    const selectedAddress = customerAddresses[addressIndex]?.address || "";
+    
     setFormData((prev) => ({
       ...prev,
-      destination: selectedCustomer?.[addressType] || "",
+      destination: selectedAddress,
     }));
   };
 
@@ -272,18 +297,21 @@ export default function NewOrderPage() {
                   </select>
                 </div>
 
-                {selectedCustomer && (
+                {selectedCustomer && customerAddresses.length > 0 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
-                      Delivery Address Type *
+                      Delivery Address *
                     </label>
                     <select
-                      onChange={handleAddressTypeChange}
+                      onChange={handleAddressChange}
                       className="dashboard-input mt-1"
                       required
                     >
-                      <option value="homeaddress">Home Address</option>
-                      <option value="workaddress">Work Address</option>
+                      {customerAddresses.map((addr, index) => (
+                        <option key={index} value={index}>
+                          {addr.label || `Address #${index + 1}`}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 )}
