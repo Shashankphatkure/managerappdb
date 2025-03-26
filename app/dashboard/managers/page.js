@@ -17,6 +17,7 @@ export default function ManagersPage() {
   const supabase = createClientComponentClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedManager, setSelectedManager] = useState(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
     fetchManagers();
@@ -113,6 +114,42 @@ export default function ManagersPage() {
     } catch (error) {
       console.error("Error updating manager:", error);
       alert("Error updating manager");
+    }
+  };
+
+  const handleDeleteManager = async () => {
+    try {
+      const { error } = await supabase
+        .from("managers")
+        .delete()
+        .eq("id", selectedManager.id);
+
+      if (error) throw error;
+
+      // Close both modals first
+      setIsDeleteConfirmOpen(false);
+      setIsModalOpen(false);
+      
+      // Update local state after modals are closed
+      setManagers(prevManagers => 
+        prevManagers.filter(manager => manager.id !== selectedManager.id)
+      );
+
+      // Create notification
+      await supabase.from("notifications").insert([
+        {
+          title: "Manager Deleted",
+          message: `Manager ${selectedManager.full_name} has been deleted`,
+          type: "manager_deleted",
+          severity: "warning",
+        },
+      ]);
+      
+      // Clear selected manager
+      setSelectedManager(null);
+    } catch (error) {
+      console.error("Error deleting manager:", error);
+      alert("Error deleting manager");
     }
   };
 
@@ -298,77 +335,94 @@ export default function ManagersPage() {
               e.preventDefault();
               handleSaveChanges(selectedManager);
             }}
-            className="space-y-6"
+            className="space-y-5"
           >
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={selectedManager.email}
-                onChange={(e) =>
-                  setSelectedManager({
-                    ...selectedManager,
-                    email: e.target.value,
-                  })
-                }
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={selectedManager.full_name}
-                onChange={(e) =>
-                  setSelectedManager({
-                    ...selectedManager,
-                    full_name: e.target.value,
-                  })
-                }
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone
-              </label>
-              <input
-                type="text"
-                value={selectedManager.phone}
-                onChange={(e) =>
-                  setSelectedManager({
-                    ...selectedManager,
-                    phone: e.target.value,
-                  })
-                }
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Role
-              </label>
-              <select
-                value={selectedManager.role}
-                onChange={(e) =>
-                  setSelectedManager({
-                    ...selectedManager,
-                    role: e.target.value,
-                  })
-                }
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-              >
-                <option value="admin">Admin</option>
-                <option value="supervisor">Supervisor</option>
-              </select>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={selectedManager.full_name}
+                  onChange={(e) =>
+                    setSelectedManager({
+                      ...selectedManager,
+                      full_name: e.target.value,
+                    })
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
+                  placeholder="Enter full name"
+                />
+              </div>
+              
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <EnvelopeIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="email"
+                    value={selectedManager.email}
+                    onChange={(e) =>
+                      setSelectedManager({
+                        ...selectedManager,
+                        email: e.target.value,
+                      })
+                    }
+                    className="block w-full pl-10 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
+                    placeholder="email@example.com"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Phone
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <PhoneIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={selectedManager.phone}
+                    onChange={(e) =>
+                      setSelectedManager({
+                        ...selectedManager,
+                        phone: e.target.value,
+                      })
+                    }
+                    className="block w-full pl-10 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
+                    placeholder="Phone number"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Role
+                </label>
+                <select
+                  value={selectedManager.role}
+                  onChange={(e) =>
+                    setSelectedManager({
+                      ...selectedManager,
+                      role: e.target.value,
+                    })
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="supervisor">Supervisor</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
                   Alternate Phone
                 </label>
                 <input
@@ -380,126 +434,206 @@ export default function ManagersPage() {
                       alternate_phone: e.target.value,
                     })
                   }
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address
-                </label>
-                <textarea
-                  value={selectedManager.address || ""}
-                  onChange={(e) =>
-                    setSelectedManager({
-                      ...selectedManager,
-                      address: e.target.value,
-                    })
-                  }
-                  rows={3}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Emergency Contact
-                </label>
-                <input
-                  type="text"
-                  value={selectedManager.emergency_contact || ""}
-                  onChange={(e) =>
-                    setSelectedManager({
-                      ...selectedManager,
-                      emergency_contact: e.target.value,
-                    })
-                  }
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Aadhaar Number
-                </label>
-                <input
-                  type="text"
-                  value={selectedManager.aadhaar_number || ""}
-                  onChange={(e) =>
-                    setSelectedManager({
-                      ...selectedManager,
-                      aadhaar_number: e.target.value,
-                    })
-                  }
-                  maxLength={12}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  PAN Number
-                </label>
-                <input
-                  type="text"
-                  value={selectedManager.pan_number || ""}
-                  onChange={(e) =>
-                    setSelectedManager({
-                      ...selectedManager,
-                      pan_number: e.target.value,
-                    })
-                  }
-                  maxLength={10}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bank Account Number
-                </label>
-                <input
-                  type="text"
-                  value={selectedManager.bank_account_number || ""}
-                  onChange={(e) =>
-                    setSelectedManager({
-                      ...selectedManager,
-                      bank_account_number: e.target.value,
-                    })
-                  }
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Base Salary
-                </label>
-                <input
-                  type="number"
-                  value={selectedManager.base_salary || ""}
-                  onChange={(e) =>
-                    setSelectedManager({
-                      ...selectedManager,
-                      base_salary: e.target.value,
-                    })
-                  }
-                  step="0.01"
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
+                  placeholder="Alternative contact"
                 />
               </div>
             </div>
-            <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+            
+            <div className="pt-1">
+              <h4 className="text-sm font-medium text-gray-700 mb-3 pb-1 border-b">Personal Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Address
+                  </label>
+                  <textarea
+                    value={selectedManager.address || ""}
+                    onChange={(e) =>
+                      setSelectedManager({
+                        ...selectedManager,
+                        address: e.target.value,
+                      })
+                    }
+                    rows={2}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
+                    placeholder="Full address"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Emergency Contact
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedManager.emergency_contact || ""}
+                    onChange={(e) =>
+                      setSelectedManager({
+                        ...selectedManager,
+                        emergency_contact: e.target.value,
+                      })
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
+                    placeholder="Emergency contact"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Aadhaar Number
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedManager.aadhaar_number || ""}
+                    onChange={(e) =>
+                      setSelectedManager({
+                        ...selectedManager,
+                        aadhaar_number: e.target.value,
+                      })
+                    }
+                    maxLength={12}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
+                    placeholder="12-digit Aadhaar number"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="pt-1">
+              <h4 className="text-sm font-medium text-gray-700 mb-3 pb-1 border-b">Financial Information</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    PAN Number
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedManager.pan_number || ""}
+                    onChange={(e) =>
+                      setSelectedManager({
+                        ...selectedManager,
+                        pan_number: e.target.value,
+                      })
+                    }
+                    maxLength={10}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
+                    placeholder="PAN number"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Bank Account Number
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedManager.bank_account_number || ""}
+                    onChange={(e) =>
+                      setSelectedManager({
+                        ...selectedManager,
+                        bank_account_number: e.target.value,
+                      })
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
+                    placeholder="Account number"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Base Salary
+                  </label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 sm:text-sm">₹</span>
+                    </div>
+                    <input
+                      type="number"
+                      value={selectedManager.base_salary || ""}
+                      onChange={(e) =>
+                        setSelectedManager({
+                          ...selectedManager,
+                          base_salary: e.target.value,
+                        })
+                      }
+                      step="0.01"
+                      className="block w-full pl-7 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex items-center justify-end gap-3">
               <button
-                type="submit"
-                className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto"
+                type="button"
+                onClick={() => setIsDeleteConfirmOpen(true)}
+                className="mr-auto inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               >
-                Save Changes
+                Delete
               </button>
               <button
                 type="button"
                 onClick={handleModalClose}
-                className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
                 Cancel
+              </button>
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Save Changes
               </button>
             </div>
           </form>
         </Modal>
+      )}
+
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              onClick={() => setIsDeleteConfirmOpen(false)}
+            ></div>
+            <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+              <div className="sm:flex sm:items-start">
+                <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                  <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                  <h3 className="text-lg font-medium leading-6 text-gray-900">Delete Manager</h3>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      Are you sure you want to delete {selectedManager?.full_name}? This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={handleDeleteManager}
+                  className="inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteConfirmOpen(false)}
+                  className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </DashboardLayout>
   );
