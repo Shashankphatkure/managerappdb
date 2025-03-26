@@ -64,7 +64,7 @@ export default function NewOrderPage() {
     try {
       const { data, error } = await supabase
         .from("stores")
-        .select("id, name, address")
+        .select("id, name, address, icon")
         .eq("is_active", true)
         .order("name");
 
@@ -311,7 +311,7 @@ export default function NewOrderPage() {
                     <option value="">Choose a store...</option>
                     {stores.map((store) => (
                       <option key={store.id} value={store.id}>
-                        {store.name}
+                        {store.icon ? `${store.icon} ` : "🏪 "}{store.name}
                       </option>
                     ))}
                   </select>
