@@ -185,12 +185,12 @@ export default function OrdersPage() {
       icon: TruckIcon,
       style: getStatusStyle("on_way"),
     },
-    {
-      title: "Today's Revenue",
-      value: `₹${stats.todayRevenue.toFixed(2)}`,
-      icon: BanknotesIcon,
-      color: "purple",
-    },
+    // {
+    //   title: "Today's Revenue",
+    //   value: `₹${stats.todayRevenue.toFixed(2)}`,
+    //   icon: BanknotesIcon,
+    //   color: "purple",
+    // },
   ];
 
   return (
