@@ -19,6 +19,8 @@ import {
   BuildingLibraryIcon,
   InformationCircleIcon,
   KeyIcon,
+  EyeIcon,
+  EyeSlashIcon,
 } from "@heroicons/react/24/outline";
 
 export default function DriverDetailPage({ params }) {
@@ -49,6 +51,7 @@ export default function DriverDetailPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (driverId !== "new") {
@@ -467,11 +470,20 @@ export default function DriverDetailPage({ params }) {
                         />
                       ) : (
                         <input
-                          type={field.type}
+                          type={field.label === "Password" && showPassword ? "text" : field.type}
                           value={field.value}
                           onChange={(e) => field.onChange(e.target.value)}
                           className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
+                      )}
+                      {field.label === "Password" && (
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
+                          {showPassword ? (
+                            <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                          ) : (
+                            <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
