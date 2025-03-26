@@ -33,12 +33,12 @@ export default function Dashboard() {
       description: "Manage stores and restaurants",
       icon: BuildingStorefrontIcon,
     },
-    {
-      title: "Menu Items",
-      link: "/dashboard/items",
-      description: "Manage food items and pricing",
-      icon: ShoppingBagIcon,
-    },
+    // {
+    //   title: "Menu Items",
+    //   link: "/dashboard/items",
+    //   description: "Manage food items and pricing",
+    //   icon: ShoppingBagIcon,
+    // },
     {
       title: "Orders",
       link: "/dashboard/orders",
