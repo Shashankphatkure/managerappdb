@@ -39,9 +39,10 @@ export default function NewPaymentPage() {
   async function fetchDrivers() {
     try {
       const { data, error } = await supabase
-        .from("delivery_personnel")
+        .from("users")
         .select(
           `
+          id,
           email, 
           full_name, 
           phone,
@@ -67,9 +68,9 @@ export default function NewPaymentPage() {
     try {
       // Fetch driver details
       const { data: driverData, error: driverError } = await supabase
-        .from("delivery_personnel")
+        .from("users")
         .select("*")
-        .eq("email", driverId)
+        .eq("id", driverId)
         .single();
 
       if (driverError) throw driverError;
@@ -88,7 +89,7 @@ export default function NewPaymentPage() {
           total_amount
         `
         )
-        .eq("driveremail", driverId)
+        .eq("driverid", driverId)
         .eq("status", "completed")
         .is("payment_processed", null);
 
@@ -253,7 +254,7 @@ export default function NewPaymentPage() {
                   >
                     <option value="">Select a driver</option>
                     {drivers.map((driver) => (
-                      <option key={driver.email} value={driver.email}>
+                      <option key={driver.id} value={driver.id}>
                         {driver.full_name} ({driver.phone})
                       </option>
                     ))}
