@@ -48,6 +48,7 @@ export default function DriverDetailPage({ params }) {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (driverId !== "new") {
@@ -71,6 +72,30 @@ export default function DriverDetailPage({ params }) {
       console.error("Error fetching driver:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm("Are you sure you want to delete this driver? This action cannot be undone.")) {
+      return;
+    }
+    
+    setDeleting(true);
+    
+    try {
+      const { error } = await supabase
+        .from("users")
+        .delete()
+        .eq("id", driverId);
+      
+      if (error) throw error;
+      
+      router.push("/dashboard/drivers");
+    } catch (error) {
+      console.error("Error deleting driver:", error);
+      alert("Failed to delete driver. Please try again.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -472,7 +497,17 @@ export default function DriverDetailPage({ params }) {
             </div>
 
             {/* Submit Button */}
-            <div className="flex justify-end pt-6">
+            <div className="flex justify-end gap-4 pt-6">
+              {driverId !== "new" && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  {deleting ? "Deleting..." : "Delete Driver"}
+                </button>
+              )}
               <button
                 type="submit"
                 disabled={saving}
