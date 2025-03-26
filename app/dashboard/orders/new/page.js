@@ -18,10 +18,14 @@ export default function NewOrderPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [customers, setCustomers] = useState([]);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [customerSearch, setCustomerSearch] = useState("");
   const [stores, setStores] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerAddresses, setCustomerAddresses] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  const [filteredDrivers, setFilteredDrivers] = useState([]);
+  const [driverSearch, setDriverSearch] = useState("");
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [calculatingRoute, setCalculatingRoute] = useState(false);
 
@@ -45,6 +49,32 @@ export default function NewOrderPage() {
   useEffect(() => {
     Promise.all([fetchCustomers(), fetchStores(), fetchDrivers()]);
   }, []);
+
+  useEffect(() => {
+    // Filter customers based on search
+    if (customerSearch.trim() === "") {
+      setFilteredCustomers([]);
+    } else {
+      const filtered = customers.filter(customer => 
+        customer.full_name.toLowerCase().includes(customerSearch.toLowerCase()) || 
+        customer.phone?.includes(customerSearch)
+      );
+      setFilteredCustomers(filtered);
+    }
+  }, [customerSearch, customers]);
+
+  useEffect(() => {
+    // Filter drivers based on search
+    if (driverSearch.trim() === "") {
+      setFilteredDrivers([]);
+    } else {
+      const filtered = drivers.filter(driver => 
+        driver.full_name.toLowerCase().includes(driverSearch.toLowerCase()) || 
+        driver.phone?.includes(driverSearch)
+      );
+      setFilteredDrivers(filtered);
+    }
+  }, [driverSearch, drivers]);
 
   async function fetchCustomers() {
     try {
@@ -92,10 +122,17 @@ export default function NewOrderPage() {
     }
   }
 
-  const handleCustomerChange = (e) => {
-    const customerId = e.target.value;
-    const customer = customers.find((c) => c.id === customerId);
+  const handleCustomerSearch = (e) => {
+    setCustomerSearch(e.target.value);
+  };
+
+  const handleDriverSearch = (e) => {
+    setDriverSearch(e.target.value);
+  };
+
+  const selectCustomer = (customer) => {
     setSelectedCustomer(customer);
+    setCustomerSearch("");
     
     // Prepare customer addresses array
     let addresses = [];
@@ -121,9 +158,21 @@ export default function NewOrderPage() {
     
     setFormData((prev) => ({
       ...prev,
-      customerid: customerId,
+      customerid: customer.id,
       customername: customer?.full_name || "",
       destination: defaultAddress
+    }));
+  };
+
+  const selectDriver = (driver) => {
+    setSelectedDriver(driver);
+    setDriverSearch("");
+
+    setFormData((prev) => ({
+      ...prev,
+      driverid: driver.id,
+      drivername: driver?.full_name || "",
+      driveremail: driver?.email || "",
     }));
   };
 
@@ -135,19 +184,6 @@ export default function NewOrderPage() {
       ...prev,
       storeid: storeId,
       start: store?.address || "", // Auto-fill start with store's address
-    }));
-  };
-
-  const handleDriverChange = (e) => {
-    const driverId = e.target.value;
-    const driver = drivers.find((d) => d.id === driverId);
-    setSelectedDriver(driver);
-
-    setFormData((prev) => ({
-      ...prev,
-      driverid: driverId,
-      drivername: driver?.full_name || "",
-      driveremail: driver?.email || "",
     }));
   };
 
@@ -280,21 +316,37 @@ export default function NewOrderPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Select Customer *
+                    Search Customer *
                   </label>
-                  <select
-                    value={formData.customerid}
-                    onChange={handleCustomerChange}
-                    className="dashboard-input mt-1"
-                    required
-                  >
-                    <option value="">Choose a customer...</option>
-                    {customers.map((customer) => (
-                      <option key={customer.id} value={customer.id}>
-                        {customer.full_name} - {customer.phone}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={customerSearch}
+                      onChange={handleCustomerSearch}
+                      className="dashboard-input mt-1 w-full"
+                      placeholder="Search by name or phone number"
+                    />
+                    {filteredCustomers.length > 0 && (
+                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
+                        {filteredCustomers.map((customer) => (
+                          <div
+                            key={customer.id}
+                            onClick={() => selectCustomer(customer)}
+                            className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100"
+                          >
+                            <div className="font-medium">{customer.full_name}</div>
+                            <div className="text-sm text-gray-600">{customer.phone}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {selectedCustomer && (
+                    <div className="mt-2 p-3 border border-gray-200 rounded-md bg-blue-50">
+                      <div className="font-medium">{selectedCustomer.full_name}</div>
+                      <div className="text-sm text-gray-600">{selectedCustomer.phone}</div>
+                    </div>
+                  )}
                 </div>
 
                 {selectedCustomer && customerAddresses.length > 0 && (
@@ -386,20 +438,37 @@ export default function NewOrderPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Assign Driver
+                  Search Driver
                 </label>
-                <select
-                  value={formData.driverid}
-                  onChange={handleDriverChange}
-                  className="dashboard-input mt-1"
-                >
-                  <option value="">Select a driver...</option>
-                  {drivers.map((driver) => (
-                    <option key={driver.id} value={driver.id}>
-                      {driver.full_name} - {driver.phone}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={driverSearch}
+                    onChange={handleDriverSearch}
+                    className="dashboard-input mt-1 w-full"
+                    placeholder="Search by name or phone number"
+                  />
+                  {filteredDrivers.length > 0 && (
+                    <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
+                      {filteredDrivers.map((driver) => (
+                        <div
+                          key={driver.id}
+                          onClick={() => selectDriver(driver)}
+                          className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100"
+                        >
+                          <div className="font-medium">{driver.full_name}</div>
+                          <div className="text-sm text-gray-600">{driver.phone || 'No phone'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedDriver && (
+                  <div className="mt-2 p-3 border border-gray-200 rounded-md bg-blue-50">
+                    <div className="font-medium">{selectedDriver.full_name}</div>
+                    <div className="text-sm text-gray-600">{selectedDriver.phone || 'No phone'}</div>
+                  </div>
+                )}
               </div>
 
               {formData.distance && formData.time && (
