@@ -52,6 +52,10 @@ export default function DriverDetailPage({ params }) {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   useEffect(() => {
     if (driverId !== "new") {
@@ -99,6 +103,54 @@ export default function DriverDetailPage({ params }) {
       alert("Failed to delete driver. Please try again.");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleResetPassword() {
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
+    
+    if (!newPassword) {
+      setPasswordError("Password cannot be empty");
+      return;
+    }
+    
+    setResettingPassword(true);
+    
+    try {
+      // Get the user's email
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("email")
+        .eq("id", driverId)
+        .single();
+        
+      if (userError) {
+        throw new Error(`Failed to get user: ${userError.message}`);
+      }
+      
+      if (userData?.email) {
+        // Use the standard update password API
+        const { error: resetError } = await supabase.auth.updateUser({
+          password: newPassword
+        });
+          
+        if (resetError) {
+          throw new Error(`Password reset failed: ${resetError.message}`);
+        }
+        
+        // Clear the password fields after successful reset
+        setNewPassword("");
+        setConfirmPassword("");
+        alert("Password has been reset successfully");
+      }
+    } catch (error) {
+      console.error("Password Reset Error:", error);
+      setPasswordError(error.message || "Failed to reset password");
+    } finally {
+      setResettingPassword(false);
     }
   }
 
@@ -456,6 +508,9 @@ export default function DriverDetailPage({ params }) {
                   <div key={field.label}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       {field.label}
+                      {field.required && (
+                        <span className="text-red-500">*</span>
+                      )}
                     </label>
                     <div className="relative rounded-md">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -467,6 +522,7 @@ export default function DriverDetailPage({ params }) {
                           onChange={(e) => field.onChange(e.target.value)}
                           className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                           rows={3}
+                          required={field.required}
                         />
                       ) : (
                         <input
@@ -474,6 +530,7 @@ export default function DriverDetailPage({ params }) {
                           value={field.value}
                           onChange={(e) => field.onChange(e.target.value)}
                           className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          required={field.required}
                         />
                       )}
                       {field.label === "Password" && (
@@ -490,6 +547,81 @@ export default function DriverDetailPage({ params }) {
                 ))}
               </div>
             </div>
+
+            {/* Reset Password Section (Only for existing drivers) */}
+            {driverId !== "new" && (
+              <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+                <h2 className="text-lg font-semibold text-gray-900 border-b pb-3">
+                  Reset Password
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      New Password
+                    </label>
+                    <div className="relative rounded-md">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <KeyIcon className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => {
+                          setNewPassword(e.target.value);
+                          setPasswordError("");
+                        }}
+                        className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      />
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? (
+                          <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                        ) : (
+                          <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirm Password
+                    </label>
+                    <div className="relative rounded-md">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <KeyIcon className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => {
+                          setConfirmPassword(e.target.value);
+                          setPasswordError("");
+                        }}
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      />
+                    </div>
+                  </div>
+                  {passwordError && (
+                    <div className="col-span-2">
+                      <p className="text-sm text-red-600">{passwordError}</p>
+                    </div>
+                  )}
+                  <div className="col-span-2">
+                    <p className="text-xs text-gray-500 mb-4">
+                      Enter a new password to reset this driver's password.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleResetPassword}
+                      disabled={resettingPassword}
+                      className="inline-flex items-center justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      <KeyIcon className="w-5 h-5 mr-2" />
+                      {resettingPassword ? "Resetting..." : "Reset Password"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Active Status */}
             <div className="bg-white rounded-lg shadow-sm p-6">
