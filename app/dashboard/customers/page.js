@@ -148,7 +148,7 @@ export default function CustomersPage() {
                         {customer.status || "N/A"}
                       </span>
                     </td>
-                    <td className="px-6 py-4">{customer.orders.length}</td>
+                    <td className="px-6 py-4">{customer.orders[0]?.count || 0}</td>
                     <td className="px-6 py-4">
                       <div className="space-x-2">
                         <Link
