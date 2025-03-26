@@ -1,9 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import DashboardLayout from "../../components/DashboardLayout";
 import { use } from "react";
+import { MapPinIcon, PencilIcon } from "@heroicons/react/24/outline";
 
 export default function CustomerDetailPage({ params }) {
   const router = useRouter();
@@ -75,11 +77,44 @@ export default function CustomerDetailPage({ params }) {
     );
   }
 
+  // Function to handle displaying addresses in the UI
+  const getAddressesToDisplay = () => {
+    // If customer has the new addresses array format
+    if (customer.addresses && Array.isArray(customer.addresses)) {
+      return customer.addresses;
+    }
+    
+    // If customer has the old format, convert it
+    const addresses = [];
+    if (customer.homeaddress) {
+      addresses.push({ label: "Home", address: customer.homeaddress });
+    }
+    if (customer.workaddress) {
+      addresses.push({ label: "Work", address: customer.workaddress });
+    }
+    
+    // Return either the converted addresses or an empty array if none exist
+    return addresses.length > 0 ? addresses : [];
+  };
+
+  const addresses = getAddressesToDisplay();
+
   return (
-    <DashboardLayout title={`Customer: ${customer.full_name}`}>
+    <DashboardLayout 
+      title={`Customer: ${customer.full_name}`}
+      actions={
+        <Link
+          href={`/dashboard/customers/new?id=${customer.id}`}
+          className="dashboard-button-primary flex items-center gap-2"
+        >
+          <PencilIcon className="w-5 h-5" />
+          Edit Customer
+        </Link>
+      }
+    >
       <div className="p-6">
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
               <div className="space-y-3">
@@ -89,7 +124,7 @@ export default function CustomerDetailPage({ params }) {
                 </div>
                 <div>
                   <label className="text-sm text-gray-500">Email</label>
-                  <p className="text-gray-900">{customer.email}</p>
+                  <p className="text-gray-900">{customer.email || "N/A"}</p>
                 </div>
                 <div>
                   <label className="text-sm text-gray-500">Phone</label>
@@ -124,18 +159,6 @@ export default function CustomerDetailPage({ params }) {
               </h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm text-gray-500">Home Address</label>
-                  <p className="text-gray-900">
-                    {customer.homeaddress || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-500">Work Address</label>
-                  <p className="text-gray-900">
-                    {customer.workaddress || "N/A"}
-                  </p>
-                </div>
-                <div>
                   <label className="text-sm text-gray-500">
                     Subscription Status
                   </label>
@@ -157,51 +180,77 @@ export default function CustomerDetailPage({ params }) {
             </div>
           </div>
 
+          {/* Addresses Section */}
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4">Addresses</h3>
+            {addresses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {addresses.map((addressItem, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center mb-2">
+                      <MapPinIcon className="h-5 w-5 text-[#0078d4] mr-2" />
+                      <span className="font-medium text-gray-700">
+                        {addressItem.label || `Address #${index + 1}`}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 whitespace-pre-line">
+                      {addressItem.address || "No address details provided"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No addresses found for this customer.</p>
+            )}
+          </div>
+
           <div className="mt-8">
             <h3 className="text-lg font-semibold mb-4">Order History</h3>
             {customer.orders && customer.orders.length > 0 ? (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead>
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Order ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {customer.orders.map((order) => (
-                    <tr key={order.id}>
-                      <td className="px-6 py-4">{order.id}</td>
-                      <td className="px-6 py-4">
-                        {new Date(order.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4">${order.total_amount}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            order.status === "delivered"
-                              ? "bg-green-100 text-green-800"
-                              : order.status === "cancelled"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {order.status}
-                        </span>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead>
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Order ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Amount
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Status
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {customer.orders.map((order) => (
+                      <tr key={order.id}>
+                        <td className="px-6 py-4">{order.id}</td>
+                        <td className="px-6 py-4">
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4">${order.total_amount}</td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs ${
+                              order.status === "delivered"
+                                ? "bg-green-100 text-green-800"
+                                : order.status === "cancelled"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {order.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <p className="text-gray-500">
                 No orders found for this customer.
