@@ -38,6 +38,7 @@ export default function NewOrderPage() {
     driveremail: "",
     distance: "",
     time: "",
+    change_amount: "",
   });
 
   useEffect(() => {
@@ -206,6 +207,7 @@ export default function NewOrderPage() {
         driveremail: formData.driveremail || "",
         distance: formData.distance || "",
         time: formData.time || "",
+        change_amount: parseFloat(formData.change_amount) || null,
       };
 
       const { data, error: orderError } = await supabase
@@ -436,8 +438,23 @@ export default function NewOrderPage() {
                     required
                   >
                     <option value="cash">Cash</option>
+                    <option value="prepaid">Prepaid</option>
                   </select>
                 </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Change to be given
+                </label>
+                <input
+                  type="number"
+                  name="change_amount"
+                  value={formData.change_amount || ""}
+                  onChange={handleInputChange}
+                  className="dashboard-input"
+                  step="0.01"
+                />
               </div>
             </div>
 
