@@ -16,7 +16,7 @@ export default function DashboardStats() {
     pendingOrders: 0,
     totalCustomers: 0,
     pendingPayments: 0,
-    totalRevenue: 0,
+    inactiveDrivers: 0,
     pendingPenalties: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -40,16 +40,20 @@ export default function DashboardStats() {
     try {
       const [
         driversCount,
+        inactiveDriversCount,
         ordersCount,
         customersCount,
         paymentsCount,
-        revenueData,
         penaltiesCount,
       ] = await Promise.all([
         supabase
           .from("users")
           .select("*", { count: "exact" })
           .eq("is_active", true),
+        supabase
+          .from("users")
+          .select("*", { count: "exact" })
+          .eq("is_active", false),
         supabase
           .from("orders")
           .select("*", { count: "exact" })
@@ -60,28 +64,18 @@ export default function DashboardStats() {
           .select("*", { count: "exact" })
           .eq("status", "pending"),
         supabase
-          .from("orders")
-          .select("total_amount")
-          .eq("status", "delivered")
-          .eq("payment_status", "completed"),
-        supabase
           .from("penalties")
           .select("*", { count: "exact" })
           .eq("status", "pending")
           .is("appeal_status", null),
       ]);
 
-      const totalRevenue = revenueData.data?.reduce(
-        (sum, order) => sum + order.total_amount,
-        0
-      );
-
       setStats({
         activeDrivers: driversCount.count || 0,
+        inactiveDrivers: inactiveDriversCount.count || 0,
         pendingOrders: ordersCount.count || 0,
         totalCustomers: customersCount.count || 0,
         pendingPayments: paymentsCount.count || 0,
-        totalRevenue: totalRevenue || 0,
         pendingPenalties: penaltiesCount.count || 0,
       });
     } catch (error) {
@@ -127,9 +121,9 @@ export default function DashboardStats() {
       color: "purple",
     },
     {
-      title: "TOTAL REVENUE",
-      value: `$${stats.totalRevenue.toFixed(2)}`,
-      icon: CurrencyDollarIcon,
+      title: "INACTIVE DRIVERS",
+      value: stats.inactiveDrivers,
+      icon: TruckIcon,
       color: "emerald",
     },
     {
