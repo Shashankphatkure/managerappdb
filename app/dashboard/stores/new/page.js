@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import DashboardLayout from "../../components/DashboardLayout";
 import {
   BuildingStorefrontIcon,
@@ -11,12 +12,17 @@ import {
   ClockIcon,
   PhotoIcon,
   ArrowLeftIcon,
+  FaceSmileIcon,
 } from "@heroicons/react/24/outline";
+
+// Import EmojiPicker dynamically to avoid SSR issues
+const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 
 export default function NewStorePage() {
   const router = useRouter();
   const supabase = createClientComponentClient();
   const [submitting, setSubmitting] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [store, setStore] = useState({
     name: "",
     description: "",
@@ -24,9 +30,23 @@ export default function NewStorePage() {
     phone: "",
     opening_time: "",
     closing_time: "",
+    icon: "🏪", // Default store icon
   });
 
+  const onEmojiClick = (emojiObject) => {
+    setStore({ ...store, icon: emojiObject.emoji });
+    setShowEmojiPicker(false);
+  };
+
   const formFields = [
+    {
+      label: "Store Icon",
+      type: "emoji",
+      value: store.icon,
+      onChange: (value) => setStore({ ...store, icon: value }),
+      icon: FaceSmileIcon,
+      required: true,
+    },
     {
       label: "Store Name",
       type: "text",
@@ -121,7 +141,24 @@ export default function NewStorePage() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <field.icon className="h-5 w-5 text-[#605e5c]" />
                   </div>
-                  {field.type === "textarea" ? (
+                  
+                  {field.type === "emoji" ? (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className="block w-full rounded-md border border-[#8a8886] pl-10 py-2 text-sm text-left focus:border-[#0078d4] focus:ring-[#0078d4] flex items-center"
+                      >
+                        <span className="text-2xl mr-2">{store.icon}</span>
+                        <span className="text-sm text-gray-500">Click to change icon</span>
+                      </button>
+                      {showEmojiPicker && (
+                        <div className="absolute z-10 mt-1">
+                          <EmojiPicker onEmojiClick={onEmojiClick} />
+                        </div>
+                      )}
+                    </div>
+                  ) : field.type === "textarea" ? (
                     <textarea
                       value={field.value}
                       onChange={(e) => field.onChange(e.target.value)}
