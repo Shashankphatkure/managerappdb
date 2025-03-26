@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
 import DashboardLayout from "../components/DashboardLayout";
@@ -18,6 +18,19 @@ export default function ManagersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedManager, setSelectedManager] = useState(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  
+  // Form refs
+  const nameRef = useRef(null);
+  const emailRef = useRef(null);
+  const phoneRef = useRef(null);
+  const roleRef = useRef(null);
+  const alternatePhoneRef = useRef(null);
+  const addressRef = useRef(null);
+  const emergencyContactRef = useRef(null);
+  const aadhaarNumberRef = useRef(null);
+  const panNumberRef = useRef(null);
+  const bankAccountRef = useRef(null);
+  const baseSalaryRef = useRef(null);
 
   useEffect(() => {
     fetchManagers();
@@ -95,8 +108,24 @@ export default function ManagersPage() {
     setSelectedManager(null);
   };
 
-  const handleSaveChanges = async (updatedManager) => {
+  const handleSaveChanges = async () => {
     try {
+      // Get current values from refs
+      const updatedManager = {
+        ...selectedManager,
+        full_name: nameRef.current.value,
+        email: emailRef.current.value,
+        phone: phoneRef.current.value,
+        role: roleRef.current.value,
+        alternate_phone: alternatePhoneRef.current.value,
+        address: addressRef.current.value,
+        emergency_contact: emergencyContactRef.current.value,
+        aadhaar_number: aadhaarNumberRef.current.value,
+        pan_number: panNumberRef.current.value,
+        bank_account_number: bankAccountRef.current.value,
+        base_salary: baseSalaryRef.current.value,
+      };
+
       const { error } = await supabase
         .from("managers")
         .update(updatedManager)
@@ -326,7 +355,7 @@ export default function ManagersPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              handleSaveChanges(selectedManager);
+              handleSaveChanges();
             }}
             className="space-y-5"
           >
@@ -337,13 +366,8 @@ export default function ManagersPage() {
                 </label>
                 <input
                   type="text"
-                  value={selectedManager.full_name}
-                  onChange={(e) =>
-                    setSelectedManager({
-                      ...selectedManager,
-                      full_name: e.target.value,
-                    })
-                  }
+                  ref={nameRef}
+                  defaultValue={selectedManager.full_name || ""}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
                   placeholder="Enter full name"
                 />
@@ -359,13 +383,8 @@ export default function ManagersPage() {
                   </div>
                   <input
                     type="email"
-                    value={selectedManager.email}
-                    onChange={(e) =>
-                      setSelectedManager({
-                        ...selectedManager,
-                        email: e.target.value,
-                      })
-                    }
+                    ref={emailRef}
+                    defaultValue={selectedManager.email || ""}
                     className="block w-full pl-10 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
                     placeholder="email@example.com"
                   />
@@ -382,13 +401,8 @@ export default function ManagersPage() {
                   </div>
                   <input
                     type="text"
-                    value={selectedManager.phone}
-                    onChange={(e) =>
-                      setSelectedManager({
-                        ...selectedManager,
-                        phone: e.target.value,
-                      })
-                    }
+                    ref={phoneRef}
+                    defaultValue={selectedManager.phone || ""}
                     className="block w-full pl-10 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
                     placeholder="Phone number"
                   />
@@ -400,13 +414,8 @@ export default function ManagersPage() {
                   Role
                 </label>
                 <select
-                  value={selectedManager.role}
-                  onChange={(e) =>
-                    setSelectedManager({
-                      ...selectedManager,
-                      role: e.target.value,
-                    })
-                  }
+                  ref={roleRef}
+                  defaultValue={selectedManager.role || ""}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
                 >
                   <option value="admin">Admin</option>
@@ -420,13 +429,8 @@ export default function ManagersPage() {
                 </label>
                 <input
                   type="text"
-                  value={selectedManager.alternate_phone || ""}
-                  onChange={(e) =>
-                    setSelectedManager({
-                      ...selectedManager,
-                      alternate_phone: e.target.value,
-                    })
-                  }
+                  ref={alternatePhoneRef}
+                  defaultValue={selectedManager.alternate_phone || ""}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
                   placeholder="Alternative contact"
                 />
@@ -441,13 +445,8 @@ export default function ManagersPage() {
                     Address
                   </label>
                   <textarea
-                    value={selectedManager.address || ""}
-                    onChange={(e) =>
-                      setSelectedManager({
-                        ...selectedManager,
-                        address: e.target.value,
-                      })
-                    }
+                    ref={addressRef}
+                    defaultValue={selectedManager.address || ""}
                     rows={2}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
                     placeholder="Full address"
@@ -460,13 +459,8 @@ export default function ManagersPage() {
                   </label>
                   <input
                     type="text"
-                    value={selectedManager.emergency_contact || ""}
-                    onChange={(e) =>
-                      setSelectedManager({
-                        ...selectedManager,
-                        emergency_contact: e.target.value,
-                      })
-                    }
+                    ref={emergencyContactRef}
+                    defaultValue={selectedManager.emergency_contact || ""}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
                     placeholder="Emergency contact"
                   />
@@ -478,13 +472,8 @@ export default function ManagersPage() {
                   </label>
                   <input
                     type="text"
-                    value={selectedManager.aadhaar_number || ""}
-                    onChange={(e) =>
-                      setSelectedManager({
-                        ...selectedManager,
-                        aadhaar_number: e.target.value,
-                      })
-                    }
+                    ref={aadhaarNumberRef}
+                    defaultValue={selectedManager.aadhaar_number || ""}
                     maxLength={12}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
                     placeholder="12-digit Aadhaar number"
@@ -502,13 +491,8 @@ export default function ManagersPage() {
                   </label>
                   <input
                     type="text"
-                    value={selectedManager.pan_number || ""}
-                    onChange={(e) =>
-                      setSelectedManager({
-                        ...selectedManager,
-                        pan_number: e.target.value,
-                      })
-                    }
+                    ref={panNumberRef}
+                    defaultValue={selectedManager.pan_number || ""}
                     maxLength={10}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
                     placeholder="PAN number"
@@ -521,13 +505,8 @@ export default function ManagersPage() {
                   </label>
                   <input
                     type="text"
-                    value={selectedManager.bank_account_number || ""}
-                    onChange={(e) =>
-                      setSelectedManager({
-                        ...selectedManager,
-                        bank_account_number: e.target.value,
-                      })
-                    }
+                    ref={bankAccountRef}
+                    defaultValue={selectedManager.bank_account_number || ""}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
                     placeholder="Account number"
                   />
@@ -543,13 +522,8 @@ export default function ManagersPage() {
                     </div>
                     <input
                       type="number"
-                      value={selectedManager.base_salary || ""}
-                      onChange={(e) =>
-                        setSelectedManager({
-                          ...selectedManager,
-                          base_salary: e.target.value,
-                        })
-                      }
+                      ref={baseSalaryRef}
+                      defaultValue={selectedManager.base_salary || ""}
                       step="0.01"
                       className="block w-full pl-7 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"
                       placeholder="0.00"
