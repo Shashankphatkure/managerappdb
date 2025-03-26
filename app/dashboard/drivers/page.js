@@ -27,6 +27,7 @@ export default function DriversPage() {
   const [loading, setLoading] = useState(true);
   const [expandedDriver, setExpandedDriver] = useState(null);
   const [driverOrders, setDriverOrders] = useState({});
+  const [statusFilter, setStatusFilter] = useState("all");
   const supabase = createClientComponentClient();
   const router = useRouter();
 
@@ -34,7 +35,7 @@ export default function DriversPage() {
     const loadDrivers = async () => {
       setLoading(true);
       try {
-        const { data: usersData, error: usersError } = await supabase
+        let query = supabase
           .from("users")
           .select(
             `
@@ -47,8 +48,14 @@ export default function DriversPage() {
             status,
             created_at
           `
-          )
-          .order("created_at", { ascending: false });
+          );
+          
+        if (statusFilter !== "all") {
+          const isActive = statusFilter === "active";
+          query = query.eq("is_active", isActive);
+        }
+        
+        const { data: usersData, error: usersError } = await query.order("created_at", { ascending: false });
 
         if (usersError) throw usersError;
 
@@ -61,7 +68,7 @@ export default function DriversPage() {
     };
 
     loadDrivers();
-  }, [supabase]);
+  }, [supabase, statusFilter]);
 
   useEffect(() => {
     if (expandedDriver && !driverOrders[expandedDriver]) {
@@ -125,6 +132,18 @@ export default function DriversPage() {
       subtitle={`Total Drivers: ${drivers.length}`}
       actions={
         <div className="flex items-center gap-4">
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none pr-8"
+            >
+              <option value="all">All Drivers</option>
+              <option value="active">Active Drivers</option>
+              <option value="inactive">Inactive Drivers</option>
+            </select>
+            <ChevronDownIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+          </div>
           <button
             onClick={handleShowActiveDriversOnMap}
             className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
