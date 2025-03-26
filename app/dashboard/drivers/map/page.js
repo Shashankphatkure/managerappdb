@@ -4,7 +4,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import DashboardLayout from "../../components/DashboardLayout";
 import { ArrowLeftIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
+import { GoogleMap, Marker, InfoWindow, useLoadScript } from "@react-google-maps/api";
 
 const mapContainerStyle = {
   width: "100%",
@@ -21,6 +21,11 @@ export default function DriversMapPage() {
   const [loading, setLoading] = useState(true);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const supabase = createClientComponentClient();
+  
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    libraries: ["places"],
+  });
 
   const loadActiveDrivers = async () => {
     setLoading(true);
@@ -99,6 +104,32 @@ export default function DriversMapPage() {
     loadActiveDrivers();
   };
 
+  // Handle map loading error
+  if (loadError) {
+    return (
+      <DashboardLayout
+        title="Active Drivers Map"
+        subtitle="Error loading map"
+        actions={
+          <Link
+            href="/dashboard/drivers"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+            Back to Drivers
+          </Link>
+        }
+      >
+        <div className="p-6">
+          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+            <p className="text-red-500 mb-4">Failed to load Google Maps: {loadError.message}</p>
+            <p>Please check your API key configuration and try again.</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout
       title="Active Drivers Map"
@@ -123,7 +154,7 @@ export default function DriversMapPage() {
       }
     >
       <div className="p-6">
-        {loading ? (
+        {loading || !isLoaded ? (
           <div className="flex items-center justify-center h-[600px] bg-gray-50 rounded-xl">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
           </div>
