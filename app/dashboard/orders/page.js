@@ -17,6 +17,7 @@ import {
 const getPaymentStatusColor = (status) => {
   const colors = {
     pending: "bg-yellow-100 text-yellow-800",
+    prepaid: "bg-blue-100 text-blue-800",
     completed: "bg-green-100 text-green-800",
     failed: "bg-red-100 text-red-800",
   };
@@ -384,10 +385,10 @@ export default function OrdersPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusColor(
-                            order.payment_status
+                            order.payment_status === "pending" && (!order.total_amount || parseFloat(order.total_amount) === 0) ? "prepaid" : order.payment_status
                           )}`}
                         >
-                          {order.payment_status}
+                          {order.payment_status === "pending" && (!order.total_amount || parseFloat(order.total_amount) === 0) ? "Prepaid" : order.payment_status}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
