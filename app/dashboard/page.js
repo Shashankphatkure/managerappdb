@@ -10,6 +10,7 @@ import {
   ExclamationTriangleIcon,
   CurrencyDollarIcon,
   BuildingStorefrontIcon,
+  BanknotesIcon,
 } from "@heroicons/react/24/outline";
 
 const DashboardStats = dynamic(() => import("./components/DashboardStats"), {
@@ -68,6 +69,12 @@ export default function Dashboard() {
       link: "/dashboard/payments",
       description: "Process driver payments",
       icon: CurrencyDollarIcon,
+    },
+    {
+      title: "Ways to Earn",
+      link: "/dashboard/earning_methods",
+      description: "Manage driver earning methods",
+      icon: BanknotesIcon,
     },
     {
       title: "Managers",
