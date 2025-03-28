@@ -3,6 +3,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
+import Image from "next/image";
 import DashboardLayout from "../components/DashboardLayout";
 import {
   UserGroupIcon,
@@ -28,8 +29,16 @@ export default function DriversPage() {
   const [expandedDriver, setExpandedDriver] = useState(null);
   const [driverOrders, setDriverOrders] = useState({});
   const [statusFilter, setStatusFilter] = useState("all");
+  const [imageErrors, setImageErrors] = useState({});
   const supabase = createClientComponentClient();
   const router = useRouter();
+
+  const handleImageError = (driverId) => {
+    setImageErrors((prev) => ({
+      ...prev,
+      [driverId]: true
+    }));
+  };
 
   useEffect(() => {
     const loadDrivers = async () => {
@@ -46,7 +55,8 @@ export default function DriversPage() {
             city,
             is_active,
             status,
-            created_at
+            created_at,
+            photo
           `
           );
           
@@ -179,8 +189,20 @@ export default function DriversPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex items-center space-x-4">
                       <div className="relative">
-                        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center border-2 border-gray-100">
-                          <UserGroupIcon className="h-8 w-8 text-blue-500" />
+                        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center border-2 border-gray-100 overflow-hidden">
+                          {driver.photo && !imageErrors[driver.id] ? (
+                            <Image 
+                              src={driver.photo} 
+                              alt={driver.full_name || "Driver"}
+                              width={64}
+                              height={64}
+                              className="h-full w-full object-cover"
+                              priority
+                              onError={() => handleImageError(driver.id)}
+                            />
+                          ) : (
+                            <UserIcon className="h-8 w-8 text-blue-500" />
+                          )}
                         </div>
                         <span
                           className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white ${
