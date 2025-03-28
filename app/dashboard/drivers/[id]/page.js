@@ -3,6 +3,7 @@ import { useState, useEffect, use } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "../../components/DashboardLayout";
+import Image from "next/image";
 import {
   UserIcon,
   EnvelopeIcon,
@@ -21,6 +22,7 @@ import {
   KeyIcon,
   EyeIcon,
   EyeSlashIcon,
+  PhotoIcon,
 } from "@heroicons/react/24/outline";
 
 export default function DriverDetailPage({ params }) {
@@ -56,6 +58,9 @@ export default function DriverDetailPage({ params }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     if (driverId !== "new") {
@@ -159,6 +164,30 @@ export default function DriverDetailPage({ params }) {
     setSaving(true);
 
     try {
+      // Handle photo upload first if there's a file
+      if (photoFile) {
+        setUploadingPhoto(true);
+        const photoPath = `drivers/${Date.now()}_${photoFile.name}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('drivers-photos')
+          .upload(photoPath, photoFile);
+          
+        if (uploadError) {
+          throw new Error(`Photo upload failed: ${uploadError.message}`);
+        }
+        
+        // Get the public URL for the uploaded photo
+        const { data: { publicUrl } } = supabase.storage
+          .from('drivers-photos')
+          .getPublicUrl(photoPath);
+          
+        // Update driver object with the photo URL
+        setDriver({ ...driver, photo: publicUrl });
+        driver.photo = publicUrl; // Ensure the latest value is used in the save operation
+        setUploadingPhoto(false);
+      }
+
       if (driverId === "new") {
         const { data: authData, error: authError } = await supabase.auth.signUp(
           {
@@ -219,6 +248,21 @@ export default function DriverDetailPage({ params }) {
       setSaving(false);
     }
   }
+
+  // Handler for photo file changes
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPhotoFile(file);
+      
+      // Create a preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const formFields = [
     {
@@ -504,6 +548,47 @@ export default function DriverDetailPage({ params }) {
                 Additional Information
               </h2>
               <div className="grid grid-cols-1 gap-6">
+                {/* Driver Photo Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Driver Photo
+                  </label>
+                  <div className="flex items-start space-x-4">
+                    <div className="w-32 h-32 border-2 border-gray-300 border-dashed rounded-lg flex justify-center items-center overflow-hidden">
+                      {photoPreview || driver.photo ? (
+                        <Image 
+                          src={photoPreview || driver.photo} 
+                          alt="Driver photo" 
+                          width={120}
+                          height={120}
+                          objectFit="cover"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <PhotoIcon className="h-12 w-12 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex flex-col space-y-2">
+                      <label className="dashboard-button-secondary inline-flex items-center px-4 py-2 cursor-pointer">
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={handlePhotoChange}
+                          disabled={uploadingPhoto}
+                        />
+                        <span className="flex items-center">
+                          <PhotoIcon className="h-5 w-5 mr-2" />
+                          {uploadingPhoto ? "Uploading..." : "Upload Photo"}
+                        </span>
+                      </label>
+                      <p className="text-xs text-gray-500">
+                        Upload a clear photo of the driver. Max 2MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {formFields.slice(14).map((field) => (
                   <div key={field.label}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
