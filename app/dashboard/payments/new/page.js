@@ -12,6 +12,7 @@ import {
   TruckIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
+import Link from "next/link";
 
 export default function NewPaymentPage() {
   const router = useRouter();
@@ -19,6 +20,8 @@ export default function NewPaymentPage() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [activeTab, setActiveTab] = useState("orders");
+  const [driverPayments, setDriverPayments] = useState([]);
   const [payment, setPayment] = useState({
     driverid: "",
     finalamount: "",
@@ -104,6 +107,16 @@ export default function NewPaymentPage() {
 
       if (penaltiesError) throw penaltiesError;
 
+      // Fetch past payments for this driver
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from("driver_payments")
+        .select("*")
+        .eq("driverid", driverId)
+        .order("created_at", { ascending: false });
+
+      if (paymentsError) throw paymentsError;
+      
+      setDriverPayments(paymentsData || []);
       setSelectedDriverDetails(driverData);
       setUnprocessedOrders(ordersData || []);
       setDriverPenalties(penaltiesData || []);
@@ -391,9 +404,46 @@ export default function NewPaymentPage() {
                 </div>
 
                 {/* Bottom Section - Orders and Penalties */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Orders Table */}
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                  <div className="border-b border-gray-200">
+                    <nav className="flex -mb-px">
+                      <button
+                        onClick={() => setActiveTab("orders")}
+                        className={`py-4 px-6 font-medium text-sm border-b-2 transition-colors ${
+                          activeTab === "orders"
+                            ? "border-blue-500 text-blue-600"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        }`}
+                      >
+                        <DocumentTextIcon className="w-5 h-5 inline mr-2" />
+                        Unprocessed Orders
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("penalties")}
+                        className={`py-4 px-6 font-medium text-sm border-b-2 transition-colors ${
+                          activeTab === "penalties"
+                            ? "border-blue-500 text-blue-600"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        }`}
+                      >
+                        <XCircleIcon className="w-5 h-5 inline mr-2" />
+                        Pending Penalties
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("payments")}
+                        className={`py-4 px-6 font-medium text-sm border-b-2 transition-colors ${
+                          activeTab === "payments"
+                            ? "border-blue-500 text-blue-600"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        }`}
+                      >
+                        <BanknotesIcon className="w-5 h-5 inline mr-2" />
+                        Past Payments
+                      </button>
+                    </nav>
+                  </div>
+
+                  {activeTab === "orders" && (
                     <div className="p-6">
                       <div className="flex items-center justify-between mb-6">
                         <h3 className="text-lg font-semibold text-gray-900">
@@ -443,14 +493,20 @@ export default function NewPaymentPage() {
                                 </td>
                               </tr>
                             ))}
+                            {unprocessedOrders.length === 0 && (
+                              <tr>
+                                <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">
+                                  No unprocessed orders found
+                                </td>
+                              </tr>
+                            )}
                           </tbody>
                         </table>
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Penalties Table */}
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                  {activeTab === "penalties" && (
                     <div className="p-6">
                       <div className="flex items-center justify-between mb-6">
                         <h3 className="text-lg font-semibold text-gray-900">
@@ -504,7 +560,100 @@ export default function NewPaymentPage() {
                         )}
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {activeTab === "payments" && (
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Past Payments
+                        </h3>
+                        <span className="px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-full">
+                          {driverPayments.length} Payments
+                        </span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        {driverPayments.length > 0 ? (
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead>
+                              <tr className="bg-gray-50">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Date
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Amount
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Orders
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Status
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Actions
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {driverPayments.map((payment) => (
+                                <tr
+                                  key={payment.id}
+                                  className="hover:bg-gray-50 transition-colors"
+                                >
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {new Date(
+                                      payment.created_at
+                                    ).toLocaleDateString()}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    ${payment.finalamount}
+                                    {payment.advance > 0 && (
+                                      <div className="text-xs text-gray-500">
+                                        Advance: ${payment.advance}
+                                      </div>
+                                    )}
+                                    {payment.penalty > 0 && (
+                                      <div className="text-xs text-red-500">
+                                        Penalty: ${payment.penalty}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {payment.totalorders} orders ({payment.totalkm} km)
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <span
+                                      className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                        payment.paymentstatus === "completed"
+                                          ? "bg-green-100 text-green-800"
+                                          : payment.paymentstatus === "pending"
+                                          ? "bg-yellow-100 text-yellow-800"
+                                          : "bg-red-100 text-red-800"
+                                      }`}
+                                    >
+                                      {payment.paymentstatus}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                    <Link
+                                      href={`/dashboard/payments/${payment.id}`}
+                                      className="text-blue-600 hover:text-blue-900"
+                                    >
+                                      View
+                                    </Link>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <p className="text-center text-gray-500 py-4">
+                            No payment history found
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Process Payment Button */}
