@@ -373,28 +373,34 @@ export default function BatchDetailPage() {
               <div className="p-6">
                 <div className="space-y-6">
                   {orders.map((order, index) => {
-                    const customerAddress = order.destination || getCustomerAddress(order.customers);
-                    const addressLabel = getAddressLabel(order.customers);
+                    const isReturnToStore = order.is_return_to_store;
+                    const customerAddress = isReturnToStore ? order.destination : (order.destination || getCustomerAddress(order.customers));
+                    const addressLabel = isReturnToStore ? "Store Return" : getAddressLabel(order.customers);
                     return (
                       <div 
                         key={order.id} 
-                        className="border border-gray-200 rounded-lg p-5 hover:border-blue-300 transition-colors"
+                        className={`border ${isReturnToStore ? 'border-blue-200 bg-blue-50' : 'border-gray-200'} rounded-lg p-5 hover:border-blue-300 transition-colors`}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex items-start gap-4">
-                            <div className="bg-blue-100 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 mt-1">
-                              <span className="text-base font-semibold text-blue-600">
+                            <div className={`${isReturnToStore ? 'bg-blue-200 text-blue-700' : 'bg-blue-100 text-blue-600'} rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 mt-1`}>
+                              <span className="text-base font-semibold">
                                 {order.delivery_sequence}
                               </span>
                             </div>
                             <div>
                               <div className="flex items-center mb-2">
                                 <h3 className="text-lg font-medium text-gray-900">
-                                  {order.customers?.full_name || order.customername}
+                                  {isReturnToStore ? 'Return to Store' : (order.customers?.full_name || order.customername)}
                                 </h3>
                                 <span className={`ml-3 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                                   {getStatusLabel(order.status)}
                                 </span>
+                                {isReturnToStore && (
+                                  <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    Final Stop
+                                  </span>
+                                )}
                               </div>
                               
                               <div className="space-y-3">
@@ -414,7 +420,7 @@ export default function BatchDetailPage() {
                                   </div>
                                 )}
                                 
-                                {order.customers?.phone && (
+                                {!isReturnToStore && order.customers?.phone && (
                                   <div className="flex items-center">
                                     <PhoneIcon className="w-4 h-4 text-gray-400 mr-1" />
                                     <p className="text-sm text-gray-700">
@@ -430,7 +436,7 @@ export default function BatchDetailPage() {
                                 )}
                               </div>
                               
-                              {order.delivery_notes && (
+                              {!isReturnToStore && order.delivery_notes && (
                                 <div className="mt-3 bg-amber-50 p-3 rounded-md border border-amber-100">
                                   <p className="text-sm text-amber-800">
                                     <span className="font-medium">Note:</span> {order.delivery_notes}

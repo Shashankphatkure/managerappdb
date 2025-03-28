@@ -30,6 +30,7 @@ export default function MultiOrderPage() {
   const [showRouteConfirmation, setShowRouteConfirmation] = useState(false);
   const [optimizedRoutes, setOptimizedRoutes] = useState([]);
   const [isCalculatingRoutes, setIsCalculatingRoutes] = useState(false);
+  const [returnToStore, setReturnToStore] = useState(false);
   const supabase = createClientComponentClient();
 
   useEffect(() => {
@@ -188,6 +189,36 @@ export default function MultiOrderPage() {
         };
       });
 
+      // If returnToStore is enabled, calculate the route from the last customer back to the store
+      if (returnToStore && routeDetails.length > 0) {
+        const lastDestination = routeDetails[routeDetails.length - 1].destination;
+        
+        const returnResponse = await fetch("/api/calculate-routes", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            origins: [lastDestination],
+            destinations: [store.address],
+          }),
+        });
+        
+        const returnData = await returnResponse.json();
+        if (returnData.success && returnData.legs && returnData.legs.length > 0) {
+          routeDetails.push({
+            isReturnToStore: true,
+            distance: returnData.legs[0].distance,
+            duration: returnData.legs[0].duration,
+            origin: lastDestination,
+            destination: store.address,
+            durationValue: returnData.legs[0].durationValue,
+            orderIndex: routeDetails.length + 1,
+            addressLabel: "Store Return"
+          });
+        }
+      }
+
       return routeDetails;
     } catch (error) {
       console.error("Error calculating routes:", error);
@@ -222,11 +253,14 @@ export default function MultiOrderPage() {
       // Generate a unique batch ID
       const batchId = `batch_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       
-      const orders = optimizedRoutes.map((route, index) => {
+      // Filter out the return to store leg for actual order creation
+      const orderRoutes = optimizedRoutes.filter(route => !route.isReturnToStore);
+      
+      const orders = orderRoutes.map((route, index) => {
         const start =
           index === 0
             ? selectedStore.address
-            : optimizedRoutes[index - 1].destination;
+            : orderRoutes[index - 1].destination;
 
         return {
           driverid: selectedDriver.id,
@@ -248,6 +282,35 @@ export default function MultiOrderPage() {
           store_name: selectedStore.name
         };
       });
+      
+      // Add the return to store leg if enabled
+      if (returnToStore && optimizedRoutes.some(route => route.isReturnToStore)) {
+        const returnLeg = optimizedRoutes.find(route => route.isReturnToStore);
+        const lastOrder = orderRoutes[orderRoutes.length - 1];
+        
+        const returnOrder = {
+          driverid: selectedDriver.id,
+          drivername: selectedDriver.full_name,
+          driveremail: selectedDriver.email,
+          customerid: null,
+          customername: "Return to Store",
+          status: "confirmed",
+          payment_status: "completed",
+          payment_method: "monthly subscription",
+          start: lastOrder.destination,
+          storeid: selectedStore.id,
+          destination: selectedStore.address,
+          distance: returnLeg.distance,
+          time: returnLeg.duration,
+          delivery_sequence: orders.length + 1,
+          total_amount: 0,
+          batch_id: batchId,
+          store_name: selectedStore.name,
+          is_return_to_store: true
+        };
+        
+        orders.push(returnOrder);
+      }
 
       const { data, error } = await supabase
         .from("orders")
@@ -257,16 +320,18 @@ export default function MultiOrderPage() {
       if (error) throw error;
 
       // After successfully creating orders, create notifications for the driver
-      const notifications = optimizedRoutes.map((route, index) => ({
-        recipient_type: "driver",
-        recipient_id: selectedDriver.id,
-        title: "New Delivery Assignment",
-        message: `New delivery assigned from ${selectedStore.name} to ${
-          route.customer.full_name
-        }. Delivery sequence: ${index + 1}`,
-        type: "order",
-        delivery_attempted: false,
-      }));
+      const notifications = orders
+        .filter(order => !order.is_return_to_store) // Don't create notifications for return-to-store orders
+        .map((order, index) => ({
+          recipient_type: "driver",
+          recipient_id: selectedDriver.id,
+          title: "New Delivery Assignment",
+          message: `New delivery assigned from ${selectedStore.name} to ${
+            order.customername
+          }. Delivery sequence: ${index + 1}`,
+          type: "order",
+          delivery_attempted: false,
+        }));
 
       // Insert notifications
       const { error: notificationError } = await supabase
@@ -281,6 +346,7 @@ export default function MultiOrderPage() {
       setSelectedDriver(null);
       setSelectedCustomers([]);
       setSelectedStore(null);
+      setReturnToStore(false);
     } catch (error) {
       console.error("Error creating orders:", error);
       alert("Error creating orders. Please try again.");
@@ -642,6 +708,28 @@ export default function MultiOrderPage() {
             </div>
           </div>
 
+          {/* Return to Store Option */}
+          <div className="mb-6">
+            <div className="flex items-center">
+              <input
+                id="return-to-store"
+                type="checkbox"
+                checked={returnToStore}
+                onChange={(e) => setReturnToStore(e.target.checked)}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="return-to-store" className="ml-2 text-sm font-medium text-gray-700 flex items-center">
+                <BuildingStorefrontIcon className="w-5 h-5 mr-1 text-blue-500" />
+                Add return to store at the end of route
+              </label>
+            </div>
+            {returnToStore && (
+              <p className="mt-1 text-sm text-gray-500 ml-6">
+                The driver will return to the store after completing all deliveries.
+              </p>
+            )}
+          </div>
+
           {/* Create Orders Button */}
           <div className="flex justify-end">
             <button
@@ -869,18 +957,35 @@ export default function MultiOrderPage() {
               {/* Delivery Stops */}
               {optimizedRoutes.map((route, index) => (
                 <div
-                  key={route.customer.id}
-                  className="bg-white border border-gray-200 rounded-lg p-4"
+                  key={route.isReturnToStore ? 'return-to-store' : route.customer.id}
+                  className={`${
+                    route.isReturnToStore 
+                      ? 'bg-blue-50 border border-blue-200'
+                      : 'bg-white border border-gray-200'
+                  } rounded-lg p-4`}
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="bg-blue-100 rounded-full w-6 h-6 flex items-center justify-center">
-                      <span className="text-sm font-medium text-blue-600">
+                    <div className={`${
+                      route.isReturnToStore 
+                        ? 'bg-blue-200 text-blue-700'
+                        : 'bg-blue-100 text-blue-600'
+                      } rounded-full w-6 h-6 flex items-center justify-center`}
+                    >
+                      <span className="text-sm font-medium">
                         {route.orderIndex}
                       </span>
                     </div>
                     <h3 className="font-medium text-gray-900">
-                      {route.customer.full_name}
+                      {route.isReturnToStore 
+                        ? 'Return to Store'
+                        : route.customer.full_name
+                      }
                     </h3>
+                    {route.isReturnToStore && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Final Stop
+                      </span>
+                    )}
                   </div>
                   <div className="ml-9 space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -892,7 +997,11 @@ export default function MultiOrderPage() {
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">
-                          To <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">{route.addressLabel}</span>
+                          To {!route.isReturnToStore && 
+                              <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                {route.addressLabel}
+                              </span>
+                            }
                         </p>
                         <p className="text-base text-gray-900 line-clamp-2">
                           {route.destination}
@@ -913,21 +1022,25 @@ export default function MultiOrderPage() {
                         </p>
                       </div>
                     </div>
-                    {route.customer.phone && (
-                      <div>
-                        <p className="text-sm text-gray-500">Customer Phone</p>
-                        <p className="text-base text-gray-900">
-                          {route.customer.phone}
-                        </p>
-                      </div>
-                    )}
-                    {route.customer.ordernote && (
-                      <div>
-                        <p className="text-sm text-gray-500">Delivery Notes</p>
-                        <p className="text-base text-gray-900">
-                          {route.customer.ordernote}
-                        </p>
-                      </div>
+                    {!route.isReturnToStore && (
+                      <>
+                        {route.customer.phone && (
+                          <div>
+                            <p className="text-sm text-gray-500">Customer Phone</p>
+                            <p className="text-base text-gray-900">
+                              {route.customer.phone}
+                            </p>
+                          </div>
+                        )}
+                        {route.customer.ordernote && (
+                          <div>
+                            <p className="text-sm text-gray-500">Delivery Notes</p>
+                            <p className="text-base text-gray-900">
+                              {route.customer.ordernote}
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
