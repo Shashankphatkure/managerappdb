@@ -16,6 +16,7 @@ import {
   MagnifyingGlassIcon,
   UserCircleIcon,
   ChevronRightIcon,
+  DocumentDuplicateIcon,
 } from "@heroicons/react/24/outline";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import SearchOverlay from "./components/SearchOverlay";
@@ -105,6 +106,7 @@ export default function ClientLayout({ children }) {
     { path: "/dashboard/customers", label: "Customers", icon: UserGroupIcon },
     
     { path: "/dashboard/orders", label: "Orders", icon: ShoppingBagIcon },
+    { path: "/dashboard/batches", label: "Batches", icon: DocumentDuplicateIcon },
     { path: "/dashboard/drivers", label: "Drivers", icon: TruckIcon },
     { path: "/dashboard/payments", label: "Payments", icon: BanknotesIcon },
     { path: "/dashboard/reports", label: "Reports", icon: ChartBarIcon },

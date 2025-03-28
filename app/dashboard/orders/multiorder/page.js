@@ -219,6 +219,9 @@ export default function MultiOrderPage() {
 
   async function handleConfirmOrders() {
     try {
+      // Generate a unique batch ID
+      const batchId = `batch_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      
       const orders = optimizedRoutes.map((route, index) => {
         const start =
           index === 0
@@ -241,6 +244,8 @@ export default function MultiOrderPage() {
           time: route.duration,
           delivery_sequence: index + 1,
           total_amount: 20.0,
+          batch_id: batchId,  // Add the batch ID to each order
+          store_name: selectedStore.name
         };
       });
 
