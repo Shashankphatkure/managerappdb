@@ -376,83 +376,119 @@ export default function BatchDetailPage() {
                     const isReturnToStore = order.is_return_to_store;
                     const customerAddress = isReturnToStore ? order.destination : (order.destination || getCustomerAddress(order.customers));
                     const addressLabel = isReturnToStore ? "Store Return" : getAddressLabel(order.customers);
+                    
+                    // Show path line to next destination if not the last order
+                    const showPathLine = index < orders.length - 1;
+                    
                     return (
-                      <div 
-                        key={order.id} 
-                        className={`border ${isReturnToStore ? 'border-blue-200 bg-blue-50' : 'border-gray-200'} rounded-lg p-5 hover:border-blue-300 transition-colors`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-4">
-                            <div className={`${isReturnToStore ? 'bg-blue-200 text-blue-700' : 'bg-blue-100 text-blue-600'} rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 mt-1`}>
-                              <span className="text-base font-semibold">
-                                {order.delivery_sequence}
-                              </span>
-                            </div>
-                            <div>
-                              <div className="flex items-center mb-2">
-                                <h3 className="text-lg font-medium text-gray-900">
-                                  {isReturnToStore ? 'Return to Store' : (order.customers?.full_name || order.customername)}
-                                </h3>
-                                <span className={`ml-3 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                                  {getStatusLabel(order.status)}
+                      <div key={order.id}>
+                        <div 
+                          className={`border ${isReturnToStore ? 'border-blue-200 bg-blue-50' : 'border-gray-200'} rounded-lg p-5 hover:border-blue-300 transition-colors`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-4">
+                              <div className={`${isReturnToStore ? 'bg-blue-200 text-blue-700' : 'bg-blue-100 text-blue-600'} rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 mt-1`}>
+                                <span className="text-base font-semibold">
+                                  {order.delivery_sequence}
                                 </span>
-                                {isReturnToStore && (
-                                  <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                    Final Stop
+                              </div>
+                              <div>
+                                <div className="flex items-center mb-2">
+                                  <h3 className="text-lg font-medium text-gray-900">
+                                    {isReturnToStore ? 'Return to Store' : (order.customers?.full_name || order.customername)}
+                                  </h3>
+                                  <span className={`ml-3 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                                    {getStatusLabel(order.status)}
                                   </span>
-                                )}
-                              </div>
-                              
-                              <div className="space-y-3">
-                                {customerAddress && (
-                                  <div>
-                                    <div className="flex items-center">
-                                      <MapPinIcon className="w-4 h-4 text-gray-400 mr-1" />
-                                      {addressLabel && (
-                                        <span className="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2 py-0.5 rounded">
-                                          {addressLabel}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-sm text-gray-700 mt-1 ml-5">
-                                      {customerAddress}
-                                    </p>
-                                  </div>
-                                )}
-                                
-                                {!isReturnToStore && order.customers?.phone && (
-                                  <div className="flex items-center">
-                                    <PhoneIcon className="w-4 h-4 text-gray-400 mr-1" />
-                                    <p className="text-sm text-gray-700">
-                                      {order.customers.phone}
-                                    </p>
-                                    <a 
-                                      href={`tel:${order.customers.phone}`} 
-                                      className="ml-2 p-1 bg-green-50 rounded-full text-green-600 hover:bg-green-100"
-                                    >
-                                      <PhoneIcon className="w-3 h-3" />
-                                    </a>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {!isReturnToStore && order.delivery_notes && (
-                                <div className="mt-3 bg-amber-50 p-3 rounded-md border border-amber-100">
-                                  <p className="text-sm text-amber-800">
-                                    <span className="font-medium">Note:</span> {order.delivery_notes}
-                                  </p>
+                                  {isReturnToStore && (
+                                    <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                      Final Stop
+                                    </span>
+                                  )}
                                 </div>
-                              )}
+                                
+                                <div className="space-y-3">
+                                  {customerAddress && (
+                                    <div>
+                                      <div className="flex items-center">
+                                        <MapPinIcon className="w-4 h-4 text-gray-400 mr-1" />
+                                        {addressLabel && (
+                                          <span className="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2 py-0.5 rounded">
+                                            {addressLabel}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-gray-700 mt-1 ml-5">
+                                        {customerAddress}
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  
+                                  
+                                  {!isReturnToStore && order.customers?.phone && (
+                                    <div className="flex items-center">
+                                      <PhoneIcon className="w-4 h-4 text-gray-400 mr-1" />
+                                      <p className="text-sm text-gray-700">
+                                        {order.customers.phone}
+                                      </p>
+                                      <a 
+                                        href={`tel:${order.customers.phone}`} 
+                                        className="ml-2 p-1 bg-green-50 rounded-full text-green-600 hover:bg-green-100"
+                                      >
+                                        <PhoneIcon className="w-3 h-3" />
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {!isReturnToStore && order.delivery_notes && (
+                                  <div className="mt-3 bg-amber-50 p-3 rounded-md border border-amber-100">
+                                    <p className="text-sm text-amber-800">
+                                      <span className="font-medium">Note:</span> {order.delivery_notes}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <Link
+                              href={`/dashboard/orders/${order.id}/view`}
+                              className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                            >
+                              View Order
+                            </Link>
+                          </div>
+                        </div>
+                        
+                        {/* Path to next destination */}
+                        {showPathLine && (
+                          <div className="py-4 pl-4 relative">
+                            <div className="absolute left-4 top-0 bottom-0 w-px bg-blue-200"></div>
+                            <div className="ml-12 bg-gray-50 rounded-md p-3 border border-gray-200 space-y-1">
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-500 font-medium">From: {order.destination || customerAddress}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-500 font-medium">To: {orders[index + 1].destination || getCustomerAddress(orders[index + 1].customers)}</span>
+                              </div>
+                              <div className="border-t border-gray-200 pt-2 mt-2 flex flex-wrap gap-x-6 gap-y-1">
+                                {order.distance && (
+                                  <div className="flex items-center">
+                                    <span className="text-sm text-blue-600 font-medium">Distance:</span>
+                                    <span className="ml-1 text-sm text-gray-700">{order.distance}</span>
+                                  </div>
+                                )}
+                                {order.time && (
+                                  <div className="flex items-center">
+                                    <span className="text-sm text-blue-600 font-medium">Est. Time:</span>
+                                    <span className="ml-1 text-sm text-gray-700">{order.time}</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                          
-                          <Link
-                            href={`/dashboard/orders/${order.id}/view`}
-                            className="text-blue-600 hover:text-blue-900 text-sm font-medium"
-                          >
-                            View Order
-                          </Link>
-                        </div>
+                        )}
                       </div>
                     );
                   })}
