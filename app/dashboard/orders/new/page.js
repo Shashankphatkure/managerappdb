@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import DashboardLayout from "../../components/DashboardLayout";
@@ -12,7 +12,8 @@ import {
   BuildingStorefrontIcon,
 } from "@heroicons/react/24/outline";
 
-export default function NewOrderPage() {
+// Component that uses useSearchParams
+function NewOrderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const driverId = searchParams.get('driverId');
@@ -808,5 +809,27 @@ export default function NewOrderPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+// Loading fallback for Suspense
+function LoadingFallback() {
+  return (
+    <DashboardLayout title="Create New Order">
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mb-4"></div>
+          <p>Loading order form...</p>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
+
+export default function NewOrderPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <NewOrderContent />
+    </Suspense>
   );
 }
