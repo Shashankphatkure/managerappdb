@@ -250,7 +250,7 @@ export default function ViewOrderPage({ params }) {
           {order.completiontime && (
             <div className="flex items-center gap-2">
               <ClockIcon className="w-5 h-5 text-gray-400" />
-              <span>Completed at: {order.completiontime}</span>
+              <span>Completed at: {new Date(order.completiontime).toLocaleString()}</span>
             </div>
           )}
         </div>
