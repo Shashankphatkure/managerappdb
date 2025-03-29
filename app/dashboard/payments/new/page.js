@@ -93,7 +93,7 @@ export default function NewPaymentPage() {
         `
         )
         .eq("driverid", driverId)
-        .eq("status", "completed")
+        .eq("status", "delivered")
         .is("payment_processed", null);
 
       if (ordersError) throw ordersError;
@@ -209,7 +209,7 @@ export default function NewPaymentPage() {
           recipient_type: "driver",
           recipient_id: selectedDriverDetails.id,
           title: "New Payment Processed",
-          message: `A payment of $${payment.finalamount} has been processed for ${unprocessedOrders.length} orders`,
+          message: `A payment of ₹${payment.finalamount} has been processed for ${unprocessedOrders.length} orders`,
           type: "payment",
         },
       ]);
@@ -304,7 +304,7 @@ export default function NewPaymentPage() {
                           Penalties
                         </p>
                         <p className="text-2xl font-bold text-red-700">
-                          ${payment.penalty}
+                          ₹{payment.penalty}
                         </p>
                       </div>
                       <div className="bg-purple-50 rounded-lg p-4">
@@ -312,7 +312,7 @@ export default function NewPaymentPage() {
                           Final Amount
                         </p>
                         <p className="text-2xl font-bold text-purple-700">
-                          ${payment.finalamount}
+                          ₹{payment.finalamount}
                         </p>
                       </div>
                     </div>
@@ -489,7 +489,7 @@ export default function NewPaymentPage() {
                                   {order.distance} km
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                  ${order.total_amount}
+                                  ₹{order.total_amount}
                                 </td>
                               </tr>
                             ))}
@@ -547,7 +547,7 @@ export default function NewPaymentPage() {
                                     {penalty.reason}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">
-                                    -${penalty.amount}
+                                    -₹{penalty.amount}
                                   </td>
                                 </tr>
                               ))}
@@ -606,15 +606,15 @@ export default function NewPaymentPage() {
                                     ).toLocaleDateString()}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    ${payment.finalamount}
+                                    ₹{payment.finalamount}
                                     {payment.advance > 0 && (
                                       <div className="text-xs text-gray-500">
-                                        Advance: ${payment.advance}
+                                        Advance: ₹{payment.advance}
                                       </div>
                                     )}
                                     {payment.penalty > 0 && (
                                       <div className="text-xs text-red-500">
-                                        Penalty: ${payment.penalty}
+                                        Penalty: ₹{payment.penalty}
                                       </div>
                                     )}
                                   </td>
