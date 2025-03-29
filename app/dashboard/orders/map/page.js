@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import DashboardLayout from "../../components/DashboardLayout";
 import { ArrowLeftIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
@@ -224,7 +224,7 @@ export default function OrdersMapPage() {
                 const destinationLocation = geocodedDestinations[order.id];
 
                 return (
-                  <>
+                  <Fragment key={`order_${order.id}`}>
                     {driver?.position && destinationLocation && (
                       <Polyline
                         key={`route_${order.id}`}
@@ -262,7 +262,7 @@ export default function OrdersMapPage() {
                         }
                       />
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
 
