@@ -173,18 +173,28 @@ export default function OrdersPage() {
       value: stats.pending,
       icon: ClockIcon,
       style: getStatusStyle("pending"),
+      status: "pending"
     },
     {
       title: "Confirmed Orders",
       value: stats.confirmed,
       icon: DocumentCheckIcon,
       style: getStatusStyle("confirmed"),
+      status: "confirmed"
     },
     {
       title: "On The Way",
       value: stats.on_way,
       icon: TruckIcon,
       style: getStatusStyle("on_way"),
+      status: "on_way"
+    },
+    {
+      title: "Delivered Orders",
+      value: stats.delivered,
+      icon: CheckCircleIcon,
+      style: getStatusStyle("delivered"),
+      status: "delivered"
     },
     // {
     //   title: "Today's Revenue",
@@ -227,7 +237,8 @@ export default function OrdersPage() {
           {statsCards.map((card) => (
             <div
               key={card.title}
-              className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => setActiveTab(card.status)}
             >
               <div className="flex items-center justify-between">
                 <div>
