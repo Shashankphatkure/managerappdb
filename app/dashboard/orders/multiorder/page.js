@@ -773,22 +773,33 @@ export default function MultiOrderPage() {
             )}
           </div>
 
-          {/* Create Orders Button */}
-          <div className="flex justify-end">
-            <button
-              onClick={handleCreateOrders}
-              disabled={
-                !selectedDriver ||
-                !selectedStore ||
-                selectedCustomers.length === 0
-              }
-              className="dashboard-button-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Create {selectedCustomers.length} Orders
-            </button>
-          </div>
         </div>
       </div>
+      
+      {/* Floating Create Orders Button */}
+      <div className="fixed bottom-8 right-8 z-40">
+        <button
+          onClick={handleCreateOrders}
+          disabled={
+            !selectedDriver ||
+            !selectedStore ||
+            selectedCustomers.length === 0
+          }
+          className={`dashboard-button-primary shadow-lg rounded-full px-6 py-3 flex items-center gap-2 ${
+            (!selectedDriver || !selectedStore || selectedCustomers.length === 0) 
+              ? "opacity-50 cursor-not-allowed" 
+              : "hover:shadow-xl transition-shadow"
+          }`}
+        >
+          <span>Create {selectedCustomers.length || 0} Orders</span>
+          {(selectedDriver && selectedStore && selectedCustomers.length > 0) && (
+            <div className="bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+              {selectedCustomers.length}
+            </div>
+          )}
+        </button>
+      </div>
+      
       {showDriverInfo && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
