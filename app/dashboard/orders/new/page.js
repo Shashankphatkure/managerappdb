@@ -67,6 +67,25 @@ export default function NewOrderPage() {
     }
   }, [driverId, drivers]);
 
+  // Check for cached store after stores are loaded
+  useEffect(() => {
+    if (stores.length > 0) {
+      // Get cached store from localStorage
+      const cachedStoreId = localStorage.getItem('lastSelectedStore');
+      if (cachedStoreId) {
+        const store = stores.find(s => s.id === cachedStoreId);
+        if (store) {
+          console.log("Selecting cached store:", store.name);
+          setFormData(prev => ({
+            ...prev,
+            storeid: store.id,
+            start: store.address || ""
+          }));
+        }
+      }
+    }
+  }, [stores]);
+
   useEffect(() => {
     // Filter customers based on search
     if (customerSearch.trim() === "") {
@@ -213,6 +232,11 @@ export default function NewOrderPage() {
     const storeId = e.target.value;
     const store = stores.find((s) => s.id === storeId);
     console.log("Store selected:", store);
+
+    // Cache the selected store in localStorage
+    if (storeId) {
+      localStorage.setItem('lastSelectedStore', storeId);
+    }
 
     setFormData((prev) => ({
       ...prev,
