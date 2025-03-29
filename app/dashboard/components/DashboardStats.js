@@ -121,24 +121,28 @@ export default function DashboardStats() {
       value: stats.pendingOrders,
       icon: ClockIcon,
       color: "yellow",
+      onClick: () => handleNavigation("/dashboard/orders?status=pending"),
     },
     {
       title: "TOTAL CUSTOMERS",
       value: stats.totalCustomers,
       icon: UserGroupIcon,
       color: "green",
+      onClick: () => handleNavigation("/dashboard/customers"),
     },
     {
       title: "PENDING PAYMENTS",
       value: stats.pendingPayments,
       icon: BanknotesIcon,
       color: "purple",
+      onClick: () => handleNavigation("/dashboard/payments?status=pending"),
     },
     {
       title: "PENDING PENALTIES",
       value: stats.pendingPenalties,
       icon: ExclamationTriangleIcon,
       color: "red",
+      onClick: () => handleNavigation("/dashboard/penalties?status=pending"),
     },
   ];
 
