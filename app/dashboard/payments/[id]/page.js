@@ -206,7 +206,7 @@ export default function PaymentDetailsPage({ params }) {
               <div className="bg-red-50 rounded-lg p-4">
                 <p className="text-sm text-red-600 font-medium">Penalties</p>
                 <p className="text-2xl font-bold text-red-700">
-                  ${payment.penalty || 0}
+                  ₹{payment.penalty || 0}
                 </p>
               </div>
               <div className="bg-purple-50 rounded-lg p-4">
@@ -214,7 +214,7 @@ export default function PaymentDetailsPage({ params }) {
                   Final Amount
                 </p>
                 <p className="text-2xl font-bold text-purple-700">
-                  ${payment.finalamount}
+                  ₹{payment.finalamount}
                 </p>
               </div>
             </div>
@@ -326,7 +326,7 @@ export default function PaymentDetailsPage({ params }) {
                           {order.distance} km
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          ${order.total_amount}
+                          ₹{order.total_amount}
                         </td>
                       </tr>
                     ))}
