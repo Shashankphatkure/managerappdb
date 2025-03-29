@@ -487,18 +487,8 @@ export default function MultiOrderPage() {
                       : "border-gray-200"
                   }`}
                 >
-                  <p className="font-medium text-gray-900 mb-2">{store.name}</p>
-                  {store.address && (
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">Address:</span>{" "}
-                      <span className="line-clamp-2">{store.address}</span>
-                    </p>
-                  )}
-                  {store.phone && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      <span className="font-medium">Phone:</span> {store.phone}
-                    </p>
-                  )}
+                  <p className="font-medium text-gray-900 mb-2">{store.icon ? `${store.icon} ` : "➕ "}{store.name}</p>
+                  
                 </div>
               ))}
               {filteredStores.length === 0 && (
@@ -935,7 +925,7 @@ export default function MultiOrderPage() {
                 <div className="flex items-center gap-3 mb-3">
                   <BuildingStorefrontIcon className="w-6 h-6 text-blue-600" />
                   <h3 className="text-lg font-medium text-gray-900">
-                    Starting Point: {selectedStore.name}
+                    Starting Point: {selectedStore.icon ? `${selectedStore.icon} ` : "🏪 "}{selectedStore.name}
                   </h3>
                 </div>
                 <div className="ml-9 space-y-2">
