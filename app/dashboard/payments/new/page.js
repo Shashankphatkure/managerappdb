@@ -393,20 +393,25 @@ export default function NewPaymentPage() {
                           <label className="text-sm text-gray-500 mb-1 block">
                             Advance Payment
                           </label>
-                          <input
-                            type="number"
-                            value={payment.advance}
-                            onChange={(e) =>
-                              setPayment({
-                                ...payment,
-                                advance: e.target.value,
-                              })
-                            }
-                            className="block w-full rounded-lg border-gray-200 py-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Enter advance amount"
-                            min="0"
-                            step="0.01"
-                          />
+                          <div className="relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-gray-500 sm:text-sm">₹</span>
+                            </div>
+                            <input
+                              type="number"
+                              value={payment.advance}
+                              onChange={(e) =>
+                                setPayment({
+                                  ...payment,
+                                  advance: e.target.value,
+                                })
+                              }
+                              className="block w-full rounded-lg border border-gray-300 pl-7 py-3 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                              placeholder="Enter advance amount"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
