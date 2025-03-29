@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useRouter } from "next/navigation";
 import {
   UserGroupIcon,
   TruckIcon,
@@ -21,6 +22,7 @@ export default function DashboardStats() {
   });
   const [loading, setLoading] = useState(true);
   const supabase = createClientComponentClient();
+  const router = useRouter();
 
   useEffect(() => {
     fetchStats();
@@ -85,6 +87,10 @@ export default function DashboardStats() {
     }
   }
 
+  const handleNavigation = (path) => {
+    router.push(path);
+  };
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -101,12 +107,14 @@ export default function DashboardStats() {
       value: stats.activeDrivers,
       icon: TruckIcon,
       color: "blue",
+      onClick: () => handleNavigation("/dashboard/drivers?status=active"),
     },
     {
       title: "INACTIVE DRIVERS",
       value: stats.inactiveDrivers,
       icon: TruckIcon,
       color: "emerald",
+      onClick: () => handleNavigation("/dashboard/drivers?status=inactive"),
     },
     {
       title: "PENDING ORDERS",
@@ -137,7 +145,11 @@ export default function DashboardStats() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {statCards.map((card) => (
-        <div key={card.title} className="dashboard-card group">
+        <div 
+          key={card.title} 
+          className={`dashboard-card group ${card.onClick ? 'cursor-pointer hover:shadow-md' : ''}`}
+          onClick={card.onClick}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-[#605e5c]">{card.title}</p>

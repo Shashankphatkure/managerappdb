@@ -21,14 +21,17 @@ import {
   SwatchIcon,
   PhoneIcon,
 } from "@heroicons/react/24/outline";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function DriversPage() {
+  const searchParams = useSearchParams();
+  const statusParam = searchParams.get('status');
+  
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedDriver, setExpandedDriver] = useState(null);
   const [driverOrders, setDriverOrders] = useState({});
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState(statusParam || "all");
   const [imageErrors, setImageErrors] = useState({});
   const supabase = createClientComponentClient();
   const router = useRouter();
@@ -39,6 +42,11 @@ export default function DriversPage() {
       [driverId]: true
     }));
   };
+
+  useEffect(() => {
+    // Update filter when URL parameter changes
+    setStatusFilter(statusParam || "all");
+  }, [statusParam]);
 
   useEffect(() => {
     const loadDrivers = async () => {
@@ -136,6 +144,19 @@ export default function DriversPage() {
     router.push("/dashboard/drivers/map");
   }
 
+  const handleFilterChange = (value) => {
+    setStatusFilter(value);
+    
+    // Update URL to reflect selected filter
+    const params = new URLSearchParams();
+    if (value !== "all") {
+      params.set("status", value);
+      router.push(`/dashboard/drivers?${params.toString()}`);
+    } else {
+      router.push("/dashboard/drivers");
+    }
+  };
+
   return (
     <DashboardLayout
       title="Delivery Drivers"
@@ -145,7 +166,7 @@ export default function DriversPage() {
           <div className="relative">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => handleFilterChange(e.target.value)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none pr-8"
             >
               <option value="all">All Drivers</option>
