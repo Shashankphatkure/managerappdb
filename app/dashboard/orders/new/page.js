@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import DashboardLayout from "../../components/DashboardLayout";
 import {
   ArrowLeftIcon,
@@ -14,6 +14,8 @@ import {
 
 export default function NewOrderPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const driverId = searchParams.get('driverId');
   const supabase = createClientComponentClient();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -53,6 +55,17 @@ export default function NewOrderPage() {
       console.log("Initial data loaded: Customers, Stores, and Drivers");
     });
   }, []);
+
+  // Pre-select driver from URL parameter if available
+  useEffect(() => {
+    if (driverId && drivers.length > 0) {
+      const driver = drivers.find(d => d.id === driverId);
+      if (driver) {
+        console.log("Pre-selecting driver from URL parameter:", driver);
+        selectDriver(driver);
+      }
+    }
+  }, [driverId, drivers]);
 
   useEffect(() => {
     // Filter customers based on search

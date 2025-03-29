@@ -157,6 +157,10 @@ export default function DriversPage() {
     }
   };
 
+  const handleCreateOrder = (driver) => {
+    router.push(`/dashboard/orders/new?driverId=${driver.id}`);
+  };
+
   return (
     <DashboardLayout
       title="Delivery Drivers"
@@ -271,6 +275,14 @@ export default function DriversPage() {
                       >
                         View Assignments
                       </Link>
+                      {driver.is_active && (
+                        <button
+                          onClick={() => handleCreateOrder(driver)}
+                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-orange-600 hover:text-orange-800 border border-orange-200 rounded-lg hover:bg-orange-50 transition-colors duration-200"
+                        >
+                          Create Order
+                        </button>
+                      )}
                     </div>
                   </div>
 
