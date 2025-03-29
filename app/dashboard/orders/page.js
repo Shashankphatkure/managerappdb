@@ -345,7 +345,7 @@ export default function OrdersPage() {
                         #{order.id}
                       </td>
                       <td className="px-3 py-4 text-center text-lg">
-                        {order.stores?.icon || "🏪"}
+                        {order.stores?.icon || "❌"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
