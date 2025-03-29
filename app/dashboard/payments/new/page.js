@@ -131,13 +131,16 @@ export default function NewPaymentPage() {
         (sum, penalty) => sum + (penalty.amount || 0),
         0
       );
+      
+      // Get last payment's advance if it exists
+      const lastPaymentAdvance = paymentsData.length > 0 ? (paymentsData[0].advance || 0) : 0;
 
       setPayment({
         ...payment,
         driverid: driverId,
         totalkm: totalDistance.toFixed(2),
         totalorders: ordersData.length,
-        finalamount: (totalAmount - totalPenalties).toFixed(2),
+        finalamount: (totalAmount - totalPenalties - lastPaymentAdvance).toFixed(2),
         penalty: totalPenalties,
       });
     } catch (error) {
@@ -279,7 +282,7 @@ export default function NewPaymentPage() {
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
                       Payment Summary
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-2 gap-6 mb-6">
                       <div className="bg-blue-50 rounded-lg p-4">
                         <p className="text-sm text-blue-600 font-medium">
                           Total Orders
@@ -296,6 +299,8 @@ export default function NewPaymentPage() {
                           {payment.totalkm} km
                         </p>
                       </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-6">
                       <div className="bg-red-50 rounded-lg p-4">
                         <p className="text-sm text-red-600 font-medium">
                           Penalties
@@ -312,6 +317,16 @@ export default function NewPaymentPage() {
                           ₹{payment.finalamount}
                         </p>
                       </div>
+                      {driverPayments.length > 0 && (
+                        <div className="bg-amber-50 rounded-lg p-4">
+                          <p className="text-sm text-amber-600 font-medium">
+                            Last Payment Advance
+                          </p>
+                          <p className="text-2xl font-bold text-amber-700">
+                            ₹{driverPayments[0].advance || 0}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
