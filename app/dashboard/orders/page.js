@@ -304,6 +304,9 @@ export default function OrdersPage() {
                       Delivery
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Batch
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Timing
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -359,6 +362,19 @@ export default function OrdersPage() {
                         <p className="text-sm text-gray-900 line-clamp-2">
                           {order.destination}
                         </p>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.batch_id ? (
+                          <Link 
+                            href={`/dashboard/batches/${order.batch_id}`}
+                            className="inline-flex items-center px-2.5 py-1.5 rounded-md text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                          >
+                            <DocumentDuplicateIcon className="w-4 h-4 mr-1" />
+                            {order.is_return_to_store ? 'Return' : (order.delivery_sequence || '-')}
+                          </Link>
+                        ) : (
+                          <span className="text-sm text-gray-500">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
