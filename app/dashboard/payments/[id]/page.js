@@ -186,7 +186,7 @@ export default function PaymentDetailsPage({ params }) {
               </h3>
               {getStatusBadge(payment.paymentstatus)}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
               <div className="bg-blue-50 rounded-lg p-4">
                 <p className="text-sm text-blue-600 font-medium">
                   Total Orders
@@ -209,13 +209,25 @@ export default function PaymentDetailsPage({ params }) {
                   ₹{payment.penalty || 0}
                 </p>
               </div>
-              <div className="bg-purple-50 rounded-lg p-4">
+              <div className="bg-purple-50 rounded-lg p-4 md:col-span-3">
                 <p className="text-sm text-purple-600 font-medium">
                   Final Amount
                 </p>
-                <p className="text-2xl font-bold text-purple-700">
-                  ₹{payment.finalamount}
-                </p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-purple-700">
+                    ₹{payment.finalamount}
+                  </p>
+                  {payment.advance > 0 && (
+                    <>
+                      <p className="text-base text-amber-600">
+                        + Advance: ₹{payment.advance}
+                      </p>
+                      <p className="text-base font-semibold text-purple-900">
+                        = ₹{(Number(payment.finalamount) + Number(payment.advance || 0)).toFixed(2)}
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -306,6 +318,9 @@ export default function PaymentDetailsPage({ params }) {
                         Distance
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Advance
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Amount
                       </th>
                     </tr>
@@ -324,6 +339,9 @@ export default function PaymentDetailsPage({ params }) {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {order.distance} km
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          ₹{order.advance || 0}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           ₹{order.total_amount}
