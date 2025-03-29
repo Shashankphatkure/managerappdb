@@ -686,9 +686,15 @@ export default function NewPaymentPage() {
 
                 {/* Process Payment Button */}
                 <div className="flex justify-end mt-6">
+                  {parseFloat(payment.finalamount) < 0 && (
+                    <div className="mr-4 flex items-center text-red-600">
+                      <XCircleIcon className="w-5 h-5 mr-2" />
+                      <span>Cannot process negative payment amount</span>
+                    </div>
+                  )}
                   <button
                     onClick={handleSubmit}
-                    disabled={processing}
+                    disabled={processing || parseFloat(payment.finalamount) < 0}
                     className="inline-flex items-center px-6 py-3 text-base font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <BanknotesIcon className="w-5 h-5 mr-2" />
