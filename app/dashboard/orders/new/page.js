@@ -407,6 +407,7 @@ function NewOrderContent() {
       const orderData = {
         customerid: formData.customerid,
         customername: customer?.full_name || "",
+        storeid: formData.storeid,
         start: formData.start,
         destination: formData.destination,
         total_amount: parseFloat(formData.total_amount),
