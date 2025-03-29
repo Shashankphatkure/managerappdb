@@ -647,108 +647,137 @@ export default function MultiOrderPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredCustomers.map((customer) => {
-                const addresses = getCustomerAddresses(customer);
-                const selectedAddress = selectedCustomerAddresses[customer.id];
-                
-                return (
-                <button
-                  key={customer.id}
-                  onClick={() => {
-                    setSelectedCustomers((prev) =>
-                      prev.find((c) => c.id === customer.id)
-                        ? prev.filter((c) => c.id !== customer.id)
-                        : [...prev, customer]
-                    );
-                  }}
-                  className={`p-4 rounded-lg border text-left hover:border-blue-500 transition-colors ${
-                    selectedCustomers.find((c) => c.id === customer.id)
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium text-gray-900">
-                          {customer.full_name}
-                        </p>
-                      </div>
-                      <div className="mt-1 space-y-1">
-                        {customer.phone && (
-                          <p className="text-sm text-gray-600 flex items-center gap-1">
-                            <span className="font-medium">Phone:</span>{" "}
-                            {customer.phone}
+            {customerSearch.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredCustomers.map((customer) => {
+                  const addresses = getCustomerAddresses(customer);
+                  const selectedAddress = selectedCustomerAddresses[customer.id];
+                  
+                  return (
+                  <button
+                    key={customer.id}
+                    onClick={() => {
+                      setSelectedCustomers((prev) =>
+                        prev.find((c) => c.id === customer.id)
+                          ? prev.filter((c) => c.id !== customer.id)
+                          : [...prev, customer]
+                      );
+                    }}
+                    className={`p-4 rounded-lg border text-left hover:border-blue-500 transition-colors ${
+                      selectedCustomers.find((c) => c.id === customer.id)
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-gray-900">
+                            {customer.full_name}
                           </p>
-                        )}
-                      </div>
-                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        </div>
                         <div className="mt-1 space-y-1">
-                          {addresses.length > 0 ? (
-                            <div className="mt-1 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-700 flex items-center">
-                                  <MapPinIcon className="w-4 h-4 mr-1 text-blue-600" />
-                                  Delivery Address:
-                                </span>
-                                {addresses.length > 1 && (
-                                  <select 
-                                    onClick={(e) => e.stopPropagation()}
-                                    onChange={(e) => {
-                                      const index = parseInt(e.target.value);
-                                      const addressData = addresses[index];
-                                      handleAddressChange(customer.id, addressData);
-                                    }}
-                                    className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:border-blue-500 focus:ring-blue-500"
-                                    value={addresses.findIndex(a => 
-                                      a.address === selectedAddress?.address && a.label === selectedAddress?.label
-                                    )}
-                                  >
-                                    {addresses.map((addr, idx) => (
-                                      <option key={idx} value={idx}>
-                                        {addr.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                )}
-                              </div>
-                              <div className="bg-gray-50 p-3 rounded-md border border-gray-200 hover:border-blue-300 transition-colors">
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="font-medium text-blue-600 text-sm">
-                                    {selectedAddress?.label || 'Address'}
-                                  </span>
-                                </div>
-                                <p className="text-sm text-gray-800 whitespace-pre-line">
-                                  {selectedAddress?.address || 'No address available'}
-                                </p>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-sm text-red-500 italic">No address available</p>
+                          {customer.phone && (
+                            <p className="text-sm text-gray-600 flex items-center gap-1">
+                              <span className="font-medium">Phone:</span>{" "}
+                              {customer.phone}
+                            </p>
                           )}
                         </div>
-                      </div>
-                      {customer.ordernote && (
                         <div className="mt-2 pt-2 border-t border-gray-100">
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Note:</span>{" "}
-                            <span className="line-clamp-2">
-                              {customer.ordernote}
-                            </span>
-                          </p>
+                          <div className="mt-1 space-y-1">
+                            {addresses.length > 0 ? (
+                              <div className="mt-1 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium text-gray-700 flex items-center">
+                                    <MapPinIcon className="w-4 h-4 mr-1 text-blue-600" />
+                                    Delivery Address:
+                                  </span>
+                                  {addresses.length > 1 && (
+                                    <select 
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={(e) => {
+                                        const index = parseInt(e.target.value);
+                                        const addressData = addresses[index];
+                                        handleAddressChange(customer.id, addressData);
+                                      }}
+                                      className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:border-blue-500 focus:ring-blue-500"
+                                      value={addresses.findIndex(a => 
+                                        a.address === selectedAddress?.address && a.label === selectedAddress?.label
+                                      )}
+                                    >
+                                      {addresses.map((addr, idx) => (
+                                        <option key={idx} value={idx}>
+                                          {addr.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  )}
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded-md border border-gray-200 hover:border-blue-300 transition-colors">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="font-medium text-blue-600 text-sm">
+                                      {selectedAddress?.label || 'Address'}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-800 whitespace-pre-line">
+                                    {selectedAddress?.address || 'No address available'}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-red-500 italic">No address available</p>
+                            )}
+                          </div>
                         </div>
-                      )}
+                        {customer.ordernote && (
+                          <div className="mt-2 pt-2 border-t border-gray-100">
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Note:</span>{" "}
+                              <span className="line-clamp-2">
+                                {customer.ordernote}
+                              </span>
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                )})}
+                {filteredCustomers.length === 0 && (
+                  <p className="text-gray-500 col-span-full text-center py-4">
+                    No customers found matching your search.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-gray-50 rounded-lg">
+                <p className="text-gray-500">
+                  Enter a search term to find customers
+                </p>
+                {selectedCustomers.length > 0 && (
+                  <div className="mt-6">
+                    <p className="text-sm font-medium text-gray-700 mb-3">Selected customers:</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {selectedCustomers.map(customer => (
+                        <div key={customer.id} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                          {customer.full_name}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setSelectedCustomers(prev => prev.filter(c => c.id !== customer.id));
+                            }}
+                            className="ml-2 text-blue-600 hover:text-blue-800"
+                          >
+                            <XMarkIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </button>
-              )})}
-              {filteredCustomers.length === 0 && (
-                <p className="text-gray-500 col-span-full text-center py-4">
-                  No customers found matching your search.
-                </p>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Return to Store Option */}
