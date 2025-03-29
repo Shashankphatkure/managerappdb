@@ -126,10 +126,7 @@ export default function NewPaymentPage() {
         (sum, order) => sum + (parseFloat(order.distance) || 0),
         0
       );
-      const totalAmount = ordersData.reduce(
-        (sum, order) => sum + (order.total_amount || 0),
-        0
-      );
+      const totalAmount = (totalDistance * 7) + (ordersData.length * 2);
       const totalPenalties = penaltiesData.reduce(
         (sum, penalty) => sum + (penalty.amount || 0),
         0
@@ -209,7 +206,7 @@ export default function NewPaymentPage() {
           recipient_type: "driver",
           recipient_id: selectedDriverDetails.id,
           title: "New Payment Processed",
-          message: `A payment of ₹${payment.finalamount} has been processed for ${unprocessedOrders.length} orders`,
+          message: `A payment of ₹${payment.finalamount} has been processed for ${unprocessedOrders.length} orders (${payment.totalkm} km)`,
           type: "payment",
         },
       ]);
@@ -497,6 +494,19 @@ export default function NewPaymentPage() {
                               <tr>
                                 <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">
                                   No unprocessed orders found
+                                </td>
+                              </tr>
+                            )}
+                            {unprocessedOrders.length > 0 && (
+                              <tr className="bg-gray-100 font-medium">
+                                <td className="px-6 py-4 text-sm text-gray-700" colSpan="2">
+                                  Total
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-700">
+                                  {payment.totalkm} km
+                                </td>
+                                <td className="px-6 py-4 text-sm font-bold text-blue-600">
+                                  ₹{(parseFloat(payment.totalkm) * 7 + unprocessedOrders.length * 2).toFixed(2)}
                                 </td>
                               </tr>
                             )}
