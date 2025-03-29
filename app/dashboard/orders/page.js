@@ -152,7 +152,8 @@ export default function OrdersPage() {
           `
           *,
           customers (full_name, phone),
-          users:driverid (full_name, phone, vehicle_number)
+          users:driverid (full_name, phone, vehicle_number),
+          stores (name, icon)
         `
         )
         .eq("status", activeTab)
@@ -302,6 +303,9 @@ export default function OrdersPage() {
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Order ID
                     </th>
+                    <th className="px-3 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      🏪
+                    </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Customer
                     </th>
@@ -339,6 +343,9 @@ export default function OrdersPage() {
                     <tr key={order.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         #{order.id}
+                      </td>
+                      <td className="px-3 py-4 text-center text-lg">
+                        {order.stores?.icon || "🏪"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
