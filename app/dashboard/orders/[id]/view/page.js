@@ -275,6 +275,10 @@ export default function ViewOrderPage({ params }) {
           ) : (
             <p className="text-gray-500">No delivery proof uploaded yet</p>
           )}
+          <div className="mt-4">
+            <p className="text-sm text-gray-500 mb-1">Delivery Remarks</p>
+            <p className="text-gray-700">{order.remark || "No remarks added"}</p>
+          </div>
         </div>
       ),
     },
