@@ -141,7 +141,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
         route = `/dashboard/stores/${item.id}`;
         break;
       case "orders":
-        route = `/dashboard/orders/${item.id}`;
+        route = `/dashboard/orders/${item.id}/view`;
         break;
     }
     
