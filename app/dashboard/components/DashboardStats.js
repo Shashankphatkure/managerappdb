@@ -64,7 +64,7 @@ export default function DashboardStats() {
         supabase
           .from("driver_payments")
           .select("*", { count: "exact" })
-          .eq("status", "pending"),
+          .eq("paymentstatus", "pending"),
         supabase
           .from("penalties")
           .select("*", { count: "exact" })
