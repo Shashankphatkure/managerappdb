@@ -39,6 +39,21 @@ export default function MultiOrderPage() {
     fetchStores();
   }, []);
 
+  // Check for cached store after stores are loaded
+  useEffect(() => {
+    if (stores.length > 0) {
+      // Get cached store from localStorage
+      const cachedStoreId = localStorage.getItem('lastSelectedStore');
+      if (cachedStoreId) {
+        const store = stores.find(s => s.id === cachedStoreId);
+        if (store) {
+          console.log("Selecting cached store:", store.name);
+          setSelectedStore(store);
+        }
+      }
+    }
+  }, [stores]);
+
   async function fetchDrivers() {
     try {
       // First get all active drivers
@@ -429,6 +444,15 @@ export default function MultiOrderPage() {
     }));
   };
 
+  // Handle store selection
+  const handleStoreSelect = (store) => {
+    setSelectedStore(store);
+    // Cache the selected store in localStorage
+    if (store) {
+      localStorage.setItem('lastSelectedStore', store.id);
+    }
+  };
+
   return (
     <DashboardLayout title="Create Multi-Order">
       <div className="">
@@ -456,7 +480,7 @@ export default function MultiOrderPage() {
               {filteredStores.map((store) => (
                 <div
                   key={store.id}
-                  onClick={() => setSelectedStore(store)}
+                  onClick={() => handleStoreSelect(store)}
                   className={`p-4 rounded-lg border text-left hover:border-blue-500 transition-colors cursor-pointer ${
                     selectedStore?.id === store.id
                       ? "border-blue-500 bg-blue-50"
