@@ -282,8 +282,24 @@ export default function NewPaymentPage() {
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
                       Payment Summary
                     </h3>
-                    <div className="grid grid-cols-2 gap-6 mb-6">
-                      <div className="bg-blue-50 rounded-lg p-4">
+                    <div className="grid grid-cols-6 gap-6 mb-6">
+                      <div className="col-span-3 bg-purple-50 rounded-lg p-4">
+                        <p className="text-sm text-purple-600 font-medium">
+                          Final Amount
+                        </p>
+                        <p className="text-3xl font-bold text-purple-700">
+                          ₹{payment.finalamount}
+                        </p>
+                      </div>
+                      <div className="col-span-3 bg-green-50 rounded-lg p-4">
+                        <p className="text-sm text-green-600 font-medium">
+                          Total Distance
+                        </p>
+                        <p className="text-3xl font-bold text-green-700">
+                          {payment.totalkm} km
+                        </p>
+                      </div>
+                      <div className="col-span-2 bg-blue-50 rounded-lg p-4">
                         <p className="text-sm text-blue-600 font-medium">
                           Total Orders
                         </p>
@@ -291,17 +307,7 @@ export default function NewPaymentPage() {
                           {payment.totalorders}
                         </p>
                       </div>
-                      <div className="bg-green-50 rounded-lg p-4">
-                        <p className="text-sm text-green-600 font-medium">
-                          Total Distance
-                        </p>
-                        <p className="text-2xl font-bold text-green-700">
-                          {payment.totalkm} km
-                        </p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-6">
-                      <div className="bg-red-50 rounded-lg p-4">
+                      <div className="col-span-2 bg-red-50 rounded-lg p-4">
                         <p className="text-sm text-red-600 font-medium">
                           Penalties
                         </p>
@@ -309,18 +315,10 @@ export default function NewPaymentPage() {
                           ₹{payment.penalty}
                         </p>
                       </div>
-                      <div className="bg-purple-50 rounded-lg p-4">
-                        <p className="text-sm text-purple-600 font-medium">
-                          Final Amount
-                        </p>
-                        <p className="text-2xl font-bold text-purple-700">
-                          ₹{payment.finalamount}
-                        </p>
-                      </div>
                       {driverPayments.length > 0 && (
-                        <div className="bg-amber-50 rounded-lg p-4">
+                        <div className="col-span-2 bg-amber-50 rounded-lg p-4">
                           <p className="text-sm text-amber-600 font-medium">
-                            Last Payment Advance
+                            Last Advance
                           </p>
                           <p className="text-2xl font-bold text-amber-700">
                             ₹{driverPayments[0].advance || 0}
