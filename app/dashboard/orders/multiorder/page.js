@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import DashboardLayout from "../../components/DashboardLayout";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   UserIcon,
   UsersIcon,
@@ -13,6 +14,10 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function MultiOrderPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const driverIdParam = searchParams.get('driverId');
+  
   const [drivers, setDrivers] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState(null);
@@ -38,6 +43,25 @@ export default function MultiOrderPage() {
     fetchCustomers();
     fetchStores();
   }, []);
+
+  // Set selected driver when driverId param is present
+  useEffect(() => {
+    if (driverIdParam && drivers.length > 0) {
+      const driver = drivers.find(d => d.id === driverIdParam);
+      if (driver) {
+        console.log("Preselecting driver from URL:", driver.full_name);
+        setSelectedDriver(driver);
+        
+        // Scroll to customer selection section after a short delay
+        setTimeout(() => {
+          const customerSection = document.getElementById('customer-selection-section');
+          if (customerSection) {
+            customerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 500);
+      }
+    }
+  }, [driverIdParam, drivers]);
 
   // Check for cached store after stores are loaded
   useEffect(() => {
@@ -503,6 +527,11 @@ export default function MultiOrderPage() {
           <div className="mb-8">
             <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
               <UserIcon className="w-5 h-5" /> Select Driver
+              {driverIdParam && selectedDriver && (
+                <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
+                  Pre-selected from Drivers page
+                </span>
+              )}
             </h2>
 
             {/* Driver Search */}
@@ -599,7 +628,7 @@ export default function MultiOrderPage() {
           </div>
 
           {/* Customer Selection */}
-          <div className="mb-8">
+          <div id="customer-selection-section" className="mb-8">
             <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
               <UsersIcon className="w-5 h-5" /> Select Customers
             </h2>

@@ -263,6 +263,14 @@ function DriversContent({ onDriversLoaded }) {
                         Create Order
                       </button>
                     )}
+                    {driver.is_active && (
+                      <button
+                        onClick={() => router.push(`/dashboard/orders/multiorder?driverId=${driver.id}`)}
+                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-purple-600 hover:text-purple-800 border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors duration-200"
+                      >
+                        Multi-Order
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -444,6 +452,13 @@ export default function DriversPage() {
           >
             <MapIcon className="w-5 h-5" />
             Active Drivers
+          </Link>
+          <Link
+            href="/dashboard/orders/multiorder"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200"
+          >
+            <TruckIcon className="w-5 h-5" />
+            Create Multi-Order
           </Link>
           <Link
             href="/dashboard/drivers/new"
