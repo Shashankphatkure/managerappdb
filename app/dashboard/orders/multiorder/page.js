@@ -11,6 +11,8 @@ import {
   XMarkIcon,
   BuildingStorefrontIcon,
   MapPinIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
 } from "@heroicons/react/24/outline";
 
 export default function MultiOrderPage() {
@@ -199,6 +201,7 @@ export default function MultiOrderPage() {
     try {
       console.log("Calculating routes for:", { origins, destinations });
 
+      // First step: Calculate distances from store to each destination for sorting
       const response = await fetch("/api/calculate-routes", {
         method: "POST",
         headers: {
@@ -213,20 +216,75 @@ export default function MultiOrderPage() {
       const data = await response.json();
       if (!data.success) throw new Error(data.error);
 
-      // Match customers with their optimized route legs
-      const routeDetails = data.legs.map((leg, index) => {
-        const customer = customers[index]; // Use index to keep customer order consistent
+      // Create array of [customer, distance value in meters] pairs
+      const customersWithDistance = customers.map((customer, index) => {
         return {
           customer,
-          distance: leg.distance,
-          duration: leg.duration,
-          origin: leg.origin,
-          destination: leg.destination,
-          durationValue: leg.durationValue,
-          orderIndex: index + 1,
-          addressLabel: selectedCustomerAddresses[customer.id]?.label || 'Home'
+          address: destinations[index],
+          distanceValue: data.legs[index].distanceValue || 0,
+          distanceText: data.legs[index].distance,
+          durationValue: data.legs[index].durationValue || 0,
+          durationText: data.legs[index].duration
         };
       });
+
+      // Sort by distance (ascending) - nearest to farthest for optimized food delivery
+      customersWithDistance.sort((a, b) => a.distanceValue - b.distanceValue);
+      
+      // Get the sorted customers and destinations
+      const sortedCustomers = customersWithDistance.map(item => item.customer);
+      const sortedDestinations = customersWithDistance.map(item => item.address);
+      
+      // Create route details from sorted data
+      const routeDetails = [];
+      
+      // First stop - from store to nearest customer
+      if (customersWithDistance.length > 0) {
+        const firstStop = customersWithDistance[0];
+        routeDetails.push({
+          customer: firstStop.customer,
+          distance: firstStop.distanceText,
+          duration: firstStop.durationText,
+          origin: store.address,
+          destination: firstStop.address,
+          durationValue: firstStop.durationValue,
+          orderIndex: 1,
+          addressLabel: selectedCustomerAddresses[firstStop.customer.id]?.label || 'Home'
+        });
+        
+        // Calculate remaining stops (nearest neighbor approach)
+        for (let i = 1; i < customersWithDistance.length; i++) {
+          // Origin is the previous destination
+          const origin = routeDetails[i-1].destination;
+          const currentCustomer = customersWithDistance[i];
+          
+          // Calculate route from previous stop to current one
+          const legResponse = await fetch("/api/calculate-routes", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              origins: [origin],
+              destinations: [currentCustomer.address],
+            }),
+          });
+          
+          const legData = await legResponse.json();
+          if (legData.success && legData.legs && legData.legs.length > 0) {
+            routeDetails.push({
+              customer: currentCustomer.customer,
+              distance: legData.legs[0].distance,
+              duration: legData.legs[0].duration,
+              origin: origin,
+              destination: currentCustomer.address,
+              durationValue: legData.legs[0].durationValue,
+              orderIndex: i + 1,
+              addressLabel: selectedCustomerAddresses[currentCustomer.customer.id]?.label || 'Home'
+            });
+          }
+        }
+      }
 
       // If returnToStore is enabled, calculate the route from the last customer back to the store
       if (returnToStore && routeDetails.length > 0) {
@@ -287,6 +345,69 @@ export default function MultiOrderPage() {
     }
   }
 
+  const moveRouteUp = (index) => {
+    // Can't move up if it's the first non-return item or a return-to-store item
+    if (index <= 0 || optimizedRoutes[index].isReturnToStore) return;
+    
+    const newRoutes = [...optimizedRoutes];
+    
+    // Swap this route with the one above it
+    [newRoutes[index], newRoutes[index - 1]] = [newRoutes[index - 1], newRoutes[index]];
+    
+    // Update the orderIndex values and recalculate origins
+    newRoutes.forEach((route, i) => {
+      route.orderIndex = i + 1;
+      
+      // Update origins based on new order
+      if (i === 0) {
+        // First stop is from the store
+        route.origin = selectedStore.address;
+      } else if (!route.isReturnToStore) {
+        // Regular stops start from the previous destination
+        route.origin = newRoutes[i - 1].destination;
+      }
+      
+      // If this is the last route before a return-to-store route, update return route origin
+      if (i === newRoutes.length - 2 && newRoutes[newRoutes.length - 1]?.isReturnToStore) {
+        newRoutes[newRoutes.length - 1].origin = route.destination;
+      }
+    });
+    
+    setOptimizedRoutes(newRoutes);
+  };
+
+  const moveRouteDown = (index) => {
+    // Can't move down if it's the last item or the item before return-to-store
+    if (index >= optimizedRoutes.length - 1) return;
+    if (optimizedRoutes[index + 1]?.isReturnToStore) return;
+    
+    const newRoutes = [...optimizedRoutes];
+    
+    // Swap this route with the one below it
+    [newRoutes[index], newRoutes[index + 1]] = [newRoutes[index + 1], newRoutes[index]];
+    
+    // Update the orderIndex values and recalculate origins
+    newRoutes.forEach((route, i) => {
+      route.orderIndex = i + 1;
+      
+      // Update origins based on new order
+      if (i === 0) {
+        // First stop is from the store
+        route.origin = selectedStore.address;
+      } else if (!route.isReturnToStore) {
+        // Regular stops start from the previous destination
+        route.origin = newRoutes[i - 1].destination;
+      }
+      
+      // If this is the last route before a return-to-store route, update return route origin
+      if (i === newRoutes.length - 2 && newRoutes[newRoutes.length - 1]?.isReturnToStore) {
+        newRoutes[newRoutes.length - 1].origin = route.destination;
+      }
+    });
+    
+    setOptimizedRoutes(newRoutes);
+  };
+
   async function handleConfirmOrders() {
     try {
       // Generate a unique batch ID
@@ -295,7 +416,11 @@ export default function MultiOrderPage() {
       // Filter out the return to store leg for actual order creation
       const orderRoutes = optimizedRoutes.filter(route => !route.isReturnToStore);
       
+      // Create orders based on the current optimized routes order (which may have been reordered)
       const orders = orderRoutes.map((route, index) => {
+        // For the start location:
+        // - If it's the first stop, use the store address
+        // - Otherwise, use the destination of the previous stop
         const start =
           index === 0
             ? selectedStore.address
@@ -315,9 +440,9 @@ export default function MultiOrderPage() {
           destination: route.destination,
           distance: route.distance,
           time: route.duration,
-          delivery_sequence: index + 1,
+          delivery_sequence: index + 1, // Use the new sequence position
           total_amount: 20.0,
-          batch_id: batchId,  // Add the batch ID to each order
+          batch_id: batchId,
           store_name: selectedStore.name
         };
       });
@@ -325,8 +450,9 @@ export default function MultiOrderPage() {
       // Add the return to store leg if enabled
       if (returnToStore && optimizedRoutes.some(route => route.isReturnToStore)) {
         const returnLeg = optimizedRoutes.find(route => route.isReturnToStore);
-        const lastOrder = orderRoutes[orderRoutes.length - 1];
+        const lastOrderRoute = orderRoutes[orderRoutes.length - 1];
         
+        // Create a return to store order that starts from the last customer's location
         const returnOrder = {
           driverid: selectedDriver.id,
           drivername: selectedDriver.full_name,
@@ -336,7 +462,7 @@ export default function MultiOrderPage() {
           status: "confirmed",
           payment_status: "completed",
           payment_method: "monthly subscription",
-          start: lastOrder.destination,
+          start: lastOrderRoute.destination,
           storeid: selectedStore.id,
           destination: selectedStore.address,
           distance: returnLeg.distance,
@@ -974,10 +1100,10 @@ export default function MultiOrderPage() {
             <div className="flex justify-between items-center border-b border-gray-200 pb-4 mb-6">
               <div>
                 <h2 className="text-2xl font-semibold text-gray-900">
-                  Confirm Delivery Routes
+                  Confirm Food Delivery Routes
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Review optimized multi-stop delivery route
+                  Review nearest-to-farthest optimized delivery sequence
                 </p>
               </div>
               <button
@@ -1038,96 +1164,211 @@ export default function MultiOrderPage() {
               </div>
 
               {/* Delivery Stops */}
-              {optimizedRoutes.map((route, index) => (
-                <div
-                  key={route.isReturnToStore ? 'return-to-store' : route.customer.id}
-                  className={`${
-                    route.isReturnToStore 
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'bg-white border border-gray-200'
-                  } rounded-lg p-4`}
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`${
-                      route.isReturnToStore 
-                        ? 'bg-blue-200 text-blue-700'
-                        : 'bg-blue-100 text-blue-600'
-                      } rounded-full w-6 h-6 flex items-center justify-center`}
-                    >
-                      <span className="text-sm font-medium">
-                        {route.orderIndex}
-                      </span>
-                    </div>
-                    <h3 className="font-medium text-gray-900">
-                      {route.isReturnToStore 
-                        ? 'Return to Store'
-                        : route.customer.full_name
-                      }
-                    </h3>
-                    {route.isReturnToStore && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Final Stop
-                      </span>
-                    )}
-                  </div>
-                  <div className="ml-9 space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">From</p>
-                        <p className="text-base text-gray-900 line-clamp-2">
-                          {route.origin}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">
-                          To {!route.isReturnToStore && 
-                              <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                {route.addressLabel}
-                              </span>
-                            }
-                        </p>
-                        <p className="text-base text-gray-900 line-clamp-2">
-                          {route.destination}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Distance</p>
-                        <p className="text-base font-medium text-gray-900">
-                          {route.distance}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Estimated Time</p>
-                        <p className="text-base font-medium text-gray-900">
-                          {route.duration}
-                        </p>
-                      </div>
-                    </div>
-                    {!route.isReturnToStore && (
-                      <>
-                        {route.customer.phone && (
-                          <div>
-                            <p className="text-sm text-gray-500">Customer Phone</p>
-                            <p className="text-base text-gray-900">
-                              {route.customer.phone}
-                            </p>
-                          </div>
-                        )}
-                        {route.customer.ordernote && (
-                          <div>
-                            <p className="text-sm text-gray-500">Delivery Notes</p>
-                            <p className="text-base text-gray-900">
-                              {route.customer.ordernote}
-                            </p>
-                          </div>
-                        )}
-                      </>
-                    )}
+              <div>
+                <div className="flex items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Delivery Stops</h3>
+                  <div className="ml-3 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center">
+                    <InformationCircleIcon className="w-4 h-4 mr-1" />
+                    Use the arrows to customize delivery sequence
                   </div>
                 </div>
-              ))}
+                
+                {/* Route description */}
+                <div className="bg-yellow-50 rounded-lg p-4 mb-4 border border-yellow-200">
+                  <div className="flex items-start">
+                    <InformationCircleIcon className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+                    <p className="text-sm text-yellow-700">
+                      Routes are optimized for food delivery, prioritizing nearby addresses first to ensure hot, fresh deliveries. 
+                      You can reorder stops if needed, but we recommend following the optimized sequence when possible.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Route Summary */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                  <div className="flex flex-wrap gap-4">
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Total Stops:</span>
+                      <span className="ml-2 text-base font-medium text-gray-900">
+                        {optimizedRoutes.filter(r => !r.isReturnToStore).length}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Total Distance:</span>
+                      <span className="ml-2 text-base font-medium text-gray-900">
+                        {optimizedRoutes.reduce((total, route) => {
+                          // Extract numeric part of distance (e.g., "5 km" -> 5)
+                          const match = route.distance.match(/(\d+\.?\d*)/);
+                          const value = match ? parseFloat(match[1]) : 0;
+                          return total + value;
+                        }, 0).toFixed(1)} km
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Estimated Duration:</span>
+                      <span className="ml-2 text-base font-medium text-gray-900">
+                        {(() => {
+                          // Calculate total minutes
+                          const totalMinutes = optimizedRoutes.reduce((total, route) => {
+                            // Extract values like "30 mins" -> 30, "1 hour 15 mins" -> 75
+                            let minutes = 0;
+                            const hourMatch = route.duration.match(/(\d+)\s*hour/i);
+                            if (hourMatch) minutes += parseInt(hourMatch[1]) * 60;
+                            
+                            const minMatch = route.duration.match(/(\d+)\s*min/i);
+                            if (minMatch) minutes += parseInt(minMatch[1]);
+                            
+                            return total + minutes;
+                          }, 0);
+                          
+                          // Format as hours and minutes
+                          const hours = Math.floor(totalMinutes / 60);
+                          const mins = totalMinutes % 60;
+                          
+                          if (hours > 0) {
+                            return `${hours} hour${hours > 1 ? 's' : ''} ${mins > 0 ? `${mins} min${mins > 1 ? 's' : ''}` : ''}`;
+                          }
+                          return `${mins} min${mins > 1 ? 's' : ''}`;
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                {optimizedRoutes.map((route, index) => (
+                  <div
+                    key={route.isReturnToStore ? 'return-to-store' : route.customer.id}
+                    className={`${
+                      route.isReturnToStore 
+                        ? 'bg-blue-50 border border-blue-200'
+                        : 'bg-white border border-gray-200'
+                    } rounded-lg p-4 mb-4`}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`${
+                        route.isReturnToStore 
+                          ? 'bg-blue-200 text-blue-700'
+                          : 'bg-blue-100 text-blue-600'
+                        } rounded-full w-6 h-6 flex items-center justify-center`}
+                      >
+                        <span className="text-sm font-medium">
+                          {route.orderIndex}
+                        </span>
+                      </div>
+                      <h3 className="font-medium text-gray-900">
+                        {route.isReturnToStore 
+                          ? 'Return to Store'
+                          : route.customer.full_name
+                        }
+                      </h3>
+                      {route.isReturnToStore && (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Final Stop
+                        </span>
+                      )}
+                      
+                      {/* Distance indicator for food delivery timing */}
+                      {!route.isReturnToStore && (
+                        <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          index === 0 
+                            ? 'bg-green-100 text-green-800' 
+                            : index < Math.ceil(optimizedRoutes.length / 3) 
+                              ? 'bg-green-50 text-green-700'
+                              : index < Math.ceil(optimizedRoutes.length * 2 / 3)
+                                ? 'bg-yellow-50 text-yellow-700'
+                                : 'bg-orange-50 text-orange-700'
+                        }`}>
+                          {index === 0 
+                            ? 'Nearest' 
+                            : index < Math.ceil(optimizedRoutes.length / 3)
+                              ? 'Close'
+                              : index < Math.ceil(optimizedRoutes.length * 2 / 3)
+                                ? 'Medium'
+                                : 'Farthest'}
+                        </span>
+                      )}
+                      
+                      {/* Reordering buttons - don't show for return to store */}
+                      {!route.isReturnToStore && (
+                        <div className="ml-auto flex gap-1">
+                          <button
+                            onClick={() => moveRouteUp(index)}
+                            disabled={index === 0}
+                            className={`p-1 rounded ${index === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}
+                            title="Move up in delivery order"
+                          >
+                            <ArrowUpIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => moveRouteDown(index)}
+                            disabled={index === optimizedRoutes.filter(r => !r.isReturnToStore).length - 1}
+                            className={`p-1 rounded ${index === optimizedRoutes.filter(r => !r.isReturnToStore).length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}
+                            title="Move down in delivery order"
+                          >
+                            <ArrowDownIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="ml-9 space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">From</p>
+                          <p className="text-base text-gray-900 line-clamp-2">
+                            {route.origin}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">
+                            To {!route.isReturnToStore && 
+                                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                  {route.addressLabel}
+                                </span>
+                              }
+                          </p>
+                          <p className="text-base text-gray-900 line-clamp-2">
+                            {route.destination}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Distance</p>
+                          <p className="text-base font-medium text-gray-900">
+                            {route.distance}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Estimated Time</p>
+                          <p className="text-base font-medium text-gray-900">
+                            {route.duration}
+                          </p>
+                        </div>
+                      </div>
+                      {!route.isReturnToStore && (
+                        <>
+                          {route.customer.phone && (
+                            <div>
+                              <p className="text-sm text-gray-500">Customer Phone</p>
+                              <p className="text-base text-gray-900">
+                                {route.customer.phone}
+                              </p>
+                            </div>
+                          )}
+                          {route.customer.ordernote && (
+                            <div>
+                              <p className="text-sm text-gray-500">Delivery Notes</p>
+                              <p className="text-base text-gray-900">
+                                {route.customer.ordernote}
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="flex justify-end gap-4">
