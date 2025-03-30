@@ -37,7 +37,7 @@ export default function MultiOrderPage() {
   const [showRouteConfirmation, setShowRouteConfirmation] = useState(false);
   const [optimizedRoutes, setOptimizedRoutes] = useState([]);
   const [isCalculatingRoutes, setIsCalculatingRoutes] = useState(false);
-  const [returnToStore, setReturnToStore] = useState(false);
+  const [returnOption, setReturnOption] = useState("none"); // Options: "none", "original", "nearest"
   const supabase = createClientComponentClient();
 
   useEffect(() => {
@@ -286,33 +286,242 @@ export default function MultiOrderPage() {
         }
       }
 
-      // If returnToStore is enabled, calculate the route from the last customer back to the store
-      if (returnToStore && routeDetails.length > 0) {
+      // Handle return options if enabled and we have routes
+      if (routeDetails.length > 0) {
         const lastDestination = routeDetails[routeDetails.length - 1].destination;
         
-        const returnResponse = await fetch("/api/calculate-routes", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            origins: [lastDestination],
-            destinations: [store.address],
-          }),
-        });
-        
-        const returnData = await returnResponse.json();
-        if (returnData.success && returnData.legs && returnData.legs.length > 0) {
-          routeDetails.push({
-            isReturnToStore: true,
-            distance: returnData.legs[0].distance,
-            duration: returnData.legs[0].duration,
-            origin: lastDestination,
-            destination: store.address,
-            durationValue: returnData.legs[0].durationValue,
-            orderIndex: routeDetails.length + 1,
-            addressLabel: "Store Return"
+        // Return to original store
+        if (returnOption === "original") {
+          const returnResponse = await fetch("/api/calculate-routes", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              origins: [lastDestination],
+              destinations: [store.address],
+            }),
           });
+          
+          const returnData = await returnResponse.json();
+          if (returnData.success && returnData.legs && returnData.legs.length > 0) {
+            routeDetails.push({
+              isReturnToStore: true,
+              isOriginalStore: true,
+              store: store,
+              distance: returnData.legs[0].distance,
+              duration: returnData.legs[0].duration,
+              origin: lastDestination,
+              destination: store.address,
+              durationValue: returnData.legs[0].durationValue,
+              orderIndex: routeDetails.length + 1,
+              addressLabel: "Store Return"
+            });
+          }
+        }
+        // Return to nearest store
+        else if (returnOption === "nearest") {
+          // Get all active stores
+          console.log("Finding nearest store to last delivery location:", lastDestination);
+          
+          // Get all active stores
+          const activeStores = stores.filter(s => s.is_active !== false);
+          console.log(`Found ${activeStores.length} active stores to check for nearest:`, 
+            activeStores.map(s => ({ id: s.id, name: s.name, address: s.address })));
+          
+          if (activeStores.length === 0) {
+            console.log("No active stores found, using original store as fallback");
+            
+            // Fallback to original store
+            const returnResponse = await fetch("/api/calculate-routes", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                origins: [lastDestination],
+                destinations: [store.address],
+              }),
+            });
+            
+            const returnData = await returnResponse.json();
+            if (returnData.success && returnData.legs && returnData.legs.length > 0) {
+              routeDetails.push({
+                isReturnToStore: true,
+                isOriginalStore: true,
+                isNearestStore: true, // Technically it's the nearest because it's the only one
+                store: store,
+                distance: returnData.legs[0].distance,
+                duration: returnData.legs[0].duration,
+                origin: lastDestination,
+                destination: store.address,
+                durationValue: returnData.legs[0].durationValue,
+                orderIndex: routeDetails.length + 1,
+                addressLabel: "Return to Original Store (Only Available)"
+              });
+            }
+          } else {
+            try {
+              // IMPORTANT FIX: Calculate distance to each store individually to avoid API problems
+              const storeDistances = [];
+              
+              // Process each store one by one to avoid geocoding issues with multiple destinations
+              for (let i = 0; i < activeStores.length; i++) {
+                const currentStore = activeStores[i];
+                console.log(`Calculating distance to store ${i+1}/${activeStores.length}: ${currentStore.name}`);
+                
+                const storeResponse = await fetch("/api/calculate-routes", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    origins: [lastDestination],
+                    destinations: [currentStore.address],
+                  }),
+                });
+                
+                const storeData = await storeResponse.json();
+                
+                if (storeData.success && storeData.legs && storeData.legs.length > 0) {
+                  // Extract numeric distance value from the text (e.g., "7.5 km" -> 7.5)
+                  let distanceValue = 999999999;
+                  let durationValue = 999999999;
+                  
+                  try {
+                    // First check if the API returned numeric values directly
+                    if (storeData.legs[0].distanceValue && !isNaN(storeData.legs[0].distanceValue)) {
+                      distanceValue = storeData.legs[0].distanceValue;
+                    } else {
+                      // Extract from text as fallback
+                      const distanceText = storeData.legs[0].distance;
+                      const distanceMatch = distanceText.match(/(\d+\.?\d*)/);
+                      if (distanceMatch) {
+                        distanceValue = parseFloat(distanceMatch[1]);
+                      }
+                    }
+                    
+                    // Do the same for duration
+                    if (storeData.legs[0].durationValue && !isNaN(storeData.legs[0].durationValue)) {
+                      durationValue = storeData.legs[0].durationValue;
+                    } else {
+                      // Extract from text as fallback
+                      const durationText = storeData.legs[0].duration;
+                      const durationMatch = durationText.match(/(\d+)/);
+                      if (durationMatch) {
+                        durationValue = parseInt(durationMatch[1]);
+                      }
+                    }
+                  } catch (err) {
+                    console.error(`Error parsing distance values for ${currentStore.name}:`, err);
+                  }
+                  
+                  storeDistances.push({
+                    store: currentStore,
+                    distanceText: storeData.legs[0].distance,
+                    distanceValue: distanceValue,
+                    durationText: storeData.legs[0].duration,
+                    durationValue: durationValue
+                  });
+                  
+                  console.log(`Store ${currentStore.name} distance:`, storeData.legs[0].distance, 
+                    '(value: ' + distanceValue + ' km)', 'duration:', storeData.legs[0].duration);
+                } else {
+                  console.log(`Failed to get distance to store ${currentStore.name}`);
+                  // Add with a very high distance so it's not selected unless no other option
+                  storeDistances.push({
+                    store: currentStore,
+                    distanceText: "Unknown",
+                    distanceValue: 999999999,
+                    durationText: "Unknown",
+                    durationValue: 999999999
+                  });
+                }
+              }
+              
+              // Log all store distances for debugging
+              console.log("All store distances from last delivery location:", 
+                storeDistances.map(sd => ({
+                  name: sd.store.name,
+                  address: sd.store.address,
+                  distance: sd.distanceText,
+                  distanceValue: sd.distanceValue
+                }))
+              );
+              
+              // Find the store with the shortest distance
+              if (storeDistances.length > 0) {
+                // Sort by distance (ascending)
+                storeDistances.sort((a, b) => a.distanceValue - b.distanceValue);
+                
+                // Log the sorted stores for debugging
+                console.log("Stores sorted by distance (nearest first):", 
+                  storeDistances.map((sd, i) => ({
+                    rank: i + 1,
+                    name: sd.store.name,
+                    distance: sd.distanceText,
+                    distanceValue: sd.distanceValue
+                  }))
+                );
+                
+                // Get the nearest store (first in sorted array)
+                const nearestStoreData = storeDistances[0];
+                const nearestStore = nearestStoreData.store;
+                const isOriginalStore = nearestStore.id === store.id;
+                
+                console.log(`Selected nearest store: ${nearestStore.name} (${nearestStoreData.distanceText}), is original store: ${isOriginalStore}`);
+                
+                routeDetails.push({
+                  isReturnToStore: true,
+                  isNearestStore: true,
+                  isOriginalStore: isOriginalStore,
+                  store: nearestStore,
+                  distance: nearestStoreData.distanceText,
+                  duration: nearestStoreData.durationText,
+                  origin: lastDestination,
+                  destination: nearestStore.address,
+                  durationValue: nearestStoreData.durationValue,
+                  orderIndex: routeDetails.length + 1,
+                  addressLabel: isOriginalStore ? "Return to Original Store (Nearest)" : "Return to Nearest Store"
+                });
+              } else {
+                throw new Error("No valid store distances calculated");
+              }
+            } catch (error) {
+              console.error("Error finding nearest store:", error);
+              
+              // Fallback to original store if there's an error
+              console.log("Falling back to original store due to error");
+              
+              const returnResponse = await fetch("/api/calculate-routes", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  origins: [lastDestination],
+                  destinations: [store.address],
+                }),
+              });
+              
+              const returnData = await returnResponse.json();
+              if (returnData.success && returnData.legs && returnData.legs.length > 0) {
+                routeDetails.push({
+                  isReturnToStore: true,
+                  isOriginalStore: true,
+                  isNearestStore: false,
+                  store: store,
+                  distance: returnData.legs[0].distance,
+                  duration: returnData.legs[0].duration,
+                  origin: lastDestination,
+                  destination: store.address,
+                  durationValue: returnData.legs[0].durationValue,
+                  orderIndex: routeDetails.length + 1,
+                  addressLabel: "Return to Original Store (Fallback)"
+                });
+              }
+            }
+          }
         }
       }
 
@@ -443,16 +652,23 @@ export default function MultiOrderPage() {
           delivery_sequence: index + 1, // Use the new sequence position
           total_amount: 20.0,
           batch_id: batchId,
-          store_name: selectedStore.name
+          store_name: selectedStore.name,
+          return_option: returnOption
         };
       });
       
       // Add the return to store leg if enabled
-      if (returnToStore && optimizedRoutes.some(route => route.isReturnToStore)) {
-        const returnLeg = optimizedRoutes.find(route => route.isReturnToStore);
+      const returnRoute = optimizedRoutes.find(route => route.isReturnToStore);
+      if (returnOption !== "none" && returnRoute) {
         const lastOrderRoute = orderRoutes[orderRoutes.length - 1];
         
-        // Create a return to store order that starts from the last customer's location
+        // Get return store details based on route type
+        const isNearestStore = returnRoute.isNearestStore || false;
+        const isOriginalStore = returnRoute.isOriginalStore || false;
+        const returnToStoreId = returnRoute.store?.id || selectedStore.id;
+        const returnToStoreName = returnRoute.store?.name || selectedStore.name;
+        
+        // Create a return to store order
         const returnOrder = {
           driverid: selectedDriver.id,
           drivername: selectedDriver.full_name,
@@ -463,15 +679,18 @@ export default function MultiOrderPage() {
           payment_status: "completed",
           payment_method: "monthly subscription",
           start: lastOrderRoute.destination,
-          storeid: selectedStore.id,
-          destination: selectedStore.address,
-          distance: returnLeg.distance,
-          time: returnLeg.duration,
+          storeid: returnToStoreId,
+          destination: returnRoute.destination,
+          distance: returnRoute.distance,
+          time: returnRoute.duration,
           delivery_sequence: orders.length + 1,
           total_amount: 0,
           batch_id: batchId,
-          store_name: selectedStore.name,
-          is_return_to_store: true
+          store_name: returnToStoreName,
+          is_return_to_store: true,
+          is_nearest_store: isNearestStore,
+          is_original_store: isOriginalStore,
+          return_option: returnOption
         };
         
         orders.push(returnOrder);
@@ -511,7 +730,7 @@ export default function MultiOrderPage() {
       setSelectedDriver(null);
       setSelectedCustomers([]);
       setSelectedStore(null);
-      setReturnToStore(false);
+      setReturnOption("none");
     } catch (error) {
       console.error("Error creating orders:", error);
       alert("Error creating orders. Please try again.");
@@ -908,24 +1127,69 @@ export default function MultiOrderPage() {
 
           {/* Return to Store Option */}
           <div className="mb-6">
-            <div className="flex items-center">
-              <input
-                id="return-to-store"
-                type="checkbox"
-                checked={returnToStore}
-                onChange={(e) => setReturnToStore(e.target.checked)}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label htmlFor="return-to-store" className="ml-2 text-sm font-medium text-gray-700 flex items-center">
+            <div className="flex items-start">
+              <h3 className="text-md font-medium text-gray-700 mb-2 flex items-center">
                 <BuildingStorefrontIcon className="w-5 h-5 mr-1 text-blue-500" />
-                Add return to store at the end of route
-              </label>
+                Return Options
+              </h3>
             </div>
-            {returnToStore && (
-              <p className="mt-1 text-sm text-gray-500 ml-6">
-                The driver will return to the store after completing all deliveries.
-              </p>
-            )}
+            
+            <div className="space-y-3 ml-6">
+              <div className="flex items-center">
+                <input
+                  id="return-none"
+                  type="radio"
+                  name="return-option"
+                  value="none"
+                  checked={returnOption === "none"}
+                  onChange={() => setReturnOption("none")}
+                  className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <label htmlFor="return-none" className="ml-2 text-sm font-medium text-gray-700">
+                  No return (end route at last customer)
+                </label>
+              </div>
+              
+              <div className="flex items-center">
+                <input
+                  id="return-original"
+                  type="radio"
+                  name="return-option"
+                  value="original"
+                  checked={returnOption === "original"}
+                  onChange={() => setReturnOption("original")}
+                  className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <label htmlFor="return-original" className="ml-2 text-sm font-medium text-gray-700">
+                  Return to original store
+                </label>
+                {returnOption === "original" && (
+                  <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                    Back to {selectedStore?.name || "store"}
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex items-center">
+                <input
+                  id="return-nearest"
+                  type="radio"
+                  name="return-option"
+                  value="nearest"
+                  checked={returnOption === "nearest"}
+                  onChange={() => setReturnOption("nearest")}
+                  className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <label htmlFor="return-nearest" className="ml-2 text-sm font-medium text-gray-700">
+                  Return to nearest active store
+                </label>
+                {returnOption === "nearest" && (
+                  <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                    Finds closest store to last delivery
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
         </div>
@@ -1141,6 +1405,39 @@ export default function MultiOrderPage() {
                 </div>
               </div>
 
+              {/* Return Option Card */}
+              {returnOption !== "none" && (
+                <div className={`${
+                  returnOption === "nearest" 
+                    ? "bg-green-50 border border-green-100" 
+                    : "bg-blue-50 border border-blue-100"
+                  } rounded-lg p-4`}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <BuildingStorefrontIcon className="w-6 h-6 text-blue-600" />
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Return Option: {returnOption === "nearest" ? "Nearest Active Store" : "Original Store"}
+                    </h3>
+                  </div>
+                  <div className="ml-9">
+                    <div className="bg-white p-3 rounded border border-gray-100">
+                      <p className="text-sm text-gray-700">
+                        {returnOption === "nearest" 
+                          ? "Driver will return to the nearest active store after completing all deliveries. This optimizes driver routes by minimizing travel distance."
+                          : "Driver will return to the original store after completing all deliveries. This is useful when the driver needs to return to the starting location."
+                        }
+                      </p>
+                      {returnOption === "nearest" && (
+                        <div className="mt-2 bg-yellow-50 p-2 rounded border border-yellow-100 text-sm">
+                          <p className="text-yellow-800">
+                            <span className="font-medium">Note:</span> If the starting store is the closest to the last delivery, the driver will return there.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Driver Details Card */}
               <div className="bg-green-50 rounded-lg p-4 border border-green-100">
                 <div className="flex items-center gap-3 mb-3">
@@ -1257,14 +1554,30 @@ export default function MultiOrderPage() {
                       </div>
                       <h3 className="font-medium text-gray-900">
                         {route.isReturnToStore 
-                          ? 'Return to Store'
+                          ? route.isNearestStore
+                            ? `Return to Nearest Store${route.isOriginalStore ? ' (Original)' : ''}`
+                            : 'Return to Original Store'
                           : route.customer.full_name
                         }
                       </h3>
                       {route.isReturnToStore && (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Final Stop
-                        </span>
+                        <>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            route.isNearestStore 
+                              ? (route.isOriginalStore ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800')
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {route.isNearestStore 
+                              ? (route.isOriginalStore ? 'Original is Closest' : 'Different Store')
+                              : 'Final Stop'
+                            }
+                          </span>
+                          {route.isNearestStore && !route.isOriginalStore && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              {route.store?.name || 'Store'}
+                            </span>
+                          )}
+                        </>
                       )}
                       
                       {/* Distance indicator for food delivery timing */}
@@ -1325,10 +1638,22 @@ export default function MultiOrderPage() {
                                   {route.addressLabel}
                                 </span>
                               }
+                              {route.isReturnToStore && 
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium 
+                                  ${route.isNearestStore && !route.isOriginalStore ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                                  {route.addressLabel}
+                                </span>
+                              }
                           </p>
                           <p className="text-base text-gray-900 line-clamp-2">
                             {route.destination}
                           </p>
+                          {route.isReturnToStore && route.isNearestStore && !route.isOriginalStore && route.store && (
+                            <div className="mt-1 bg-yellow-50 p-1.5 rounded border border-yellow-200 text-sm">
+                              <span className="font-medium">{route.store.name} </span>
+                              <span className="text-gray-600">is the nearest store from the last delivery</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
