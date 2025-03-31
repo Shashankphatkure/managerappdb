@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import DashboardLayout from "../../components/DashboardLayout";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -15,7 +15,8 @@ import {
   ArrowDownIcon,
 } from "@heroicons/react/24/outline";
 
-export default function MultiOrderPage() {
+// Create a wrapper component that uses useSearchParams
+function MultiOrderContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const driverIdParam = searchParams.get('driverId');
@@ -1714,5 +1715,14 @@ export default function MultiOrderPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+// Main component with Suspense boundary
+export default function MultiOrderPage() {
+  return (
+    <Suspense fallback={<DashboardLayout title="Create Multi-Order"><div className="p-6">Loading...</div></DashboardLayout>}>
+      <MultiOrderContent />
+    </Suspense>
   );
 }
