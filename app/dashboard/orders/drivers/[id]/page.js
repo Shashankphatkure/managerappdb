@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
+import React from 'react';
 import DashboardLayout from "../../../components/DashboardLayout";
 import {
   ArrowLeftIcon,
@@ -67,6 +68,10 @@ const getStatusStyle = (status) => {
 };
 
 export default function DriverDetailsPage({ params }) {
+  // Unwrap the params object using React.use()
+  const unwrappedParams = React.use(params);
+  const driverId = unwrappedParams.id;
+  
   const router = useRouter();
   const [driver, setDriver] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -84,14 +89,14 @@ export default function DriverDetailsPage({ params }) {
   useEffect(() => {
     fetchDriverDetails();
     fetchDriverOrders();
-  }, [params.id]);
+  }, [driverId]);
 
   const fetchDriverDetails = async () => {
     try {
       const { data, error } = await supabase
         .from("users")
         .select("*")
-        .eq("id", params.id)
+        .eq("id", driverId)
         .single();
 
       if (error) throw error;
@@ -107,7 +112,7 @@ export default function DriverDetailsPage({ params }) {
       const { data, error } = await supabase
         .from("orders")
         .select("*, stores (name, icon)")
-        .eq("driverid", params.id)
+        .eq("driverid", driverId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -452,7 +457,7 @@ export default function DriverDetailsPage({ params }) {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <Link
-                              href={`/dashboard/orders/${order.id}`}
+                              href={`/dashboard/orders/${order.id}/view`}
                               className="text-indigo-600 hover:text-indigo-900"
                             >
                               View Order
@@ -467,7 +472,7 @@ export default function DriverDetailsPage({ params }) {
                 {orders.length > 10 && (
                   <div className="px-6 py-3 bg-gray-50 text-right">
                     <Link
-                      href={`/dashboard/users/${params.id}/orders`}
+                      href={`/dashboard/drivers/${driverId}/assignments`}
                       className="text-sm font-medium text-indigo-600 hover:text-indigo-900"
                     >
                       View all {orders.length} orders →
@@ -518,7 +523,7 @@ export default function DriverDetailsPage({ params }) {
                 )}
                 <div className="pt-3 mt-3 border-t border-gray-200">
                   <Link
-                    href={`/dashboard/users/${driver?.id}`}
+                    href={`/dashboard/drivers/${driver?.id}`}
                     className="text-sm font-medium text-indigo-600 hover:text-indigo-900"
                   >
                     View Full Driver Profile →
