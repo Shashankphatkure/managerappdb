@@ -27,6 +27,17 @@ export default function ViewOrderPage({ params }) {
   const [proofImage, setProofImage] = useState(null);
   const [cancelProofImage, setCancelProofImage] = useState(null);
   
+  // Helper function to format snake_case text to readable text
+  const formatRemarkText = (text) => {
+    if (!text) return "";
+    
+    // Replace underscores with spaces and capitalize each word
+    return text
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   // Helper function to handle nested path structure
   const getStorageFilePath = (path) => {
     if (!path) return null;
@@ -306,7 +317,7 @@ export default function ViewOrderPage({ params }) {
           )}
           <div className="mt-4">
             <p className="text-sm text-gray-500 mb-1">Delivery Remarks</p>
-            <p className="text-gray-700">{order.remark || "No remarks added"}</p>
+            <p className="text-gray-700">{order.remark ? formatRemarkText(order.remark) : "No remarks added"}</p>
           </div>
         </div>
       ),
@@ -335,7 +346,7 @@ export default function ViewOrderPage({ params }) {
             {order.cancel_reason && (
               <div className="mt-4">
                 <p className="text-sm text-gray-500 mb-1">Cancellation Reason</p>
-                <p className="text-gray-700">{order.cancel_reason}</p>
+                <p className="text-gray-700">{formatRemarkText(order.cancel_reason)}</p>
               </div>
             )}
             {order.cancel_time && (
