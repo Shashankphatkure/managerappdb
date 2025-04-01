@@ -25,6 +25,20 @@ export default function ViewOrderPage({ params }) {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [proofImage, setProofImage] = useState(null);
+  const [cancelProofImage, setCancelProofImage] = useState(null);
+  
+  // Helper function to handle nested path structure
+  const getStorageFilePath = (path) => {
+    if (!path) return null;
+    
+    // If path already contains the full path pattern, return it as is
+    if (path.includes('cancel-proofs/')) {
+      return path;
+    }
+    
+    // If it's just the filename, add the necessary prefix
+    return `cancel-proofs/${path}`;
+  };
 
   useEffect(() => {
     fetchOrder();
@@ -54,6 +68,21 @@ export default function ViewOrderPage({ params }) {
 
         if (imageError) throw imageError;
         setProofImage(imageUrl.publicUrl);
+      }
+      
+      if (data.cancel_photo_proof) {
+        try {
+          const cancelPhotoPath = getStorageFilePath(data.cancel_photo_proof);
+          
+          const { data: cancelImageUrl, error: cancelImageError } = supabase.storage
+            .from("delivery-proofs")
+            .getPublicUrl(cancelPhotoPath);
+
+          if (cancelImageError) throw cancelImageError;
+          setCancelProofImage(cancelImageUrl.publicUrl);
+        } catch (err) {
+          console.error("Error processing cancel photo:", err);
+        }
       }
     } catch (error) {
       console.error("Error fetching order:", error);
@@ -282,6 +311,43 @@ export default function ViewOrderPage({ params }) {
         </div>
       ),
     },
+    ...(order.status === "cancelled" || cancelProofImage || order.cancel_photo_proof ? [
+      {
+        title: "Cancellation Details",
+        icon: DocumentTextIcon,
+        content: (
+          <div className="space-y-4">
+            {cancelProofImage ? (
+              <div>
+                <p className="text-sm text-gray-500 mb-2">Cancellation Proof</p>
+                <div className="relative h-48 w-full">
+                  <Image
+                    src={cancelProofImage}
+                    alt="Cancellation Proof"
+                    fill
+                    className="object-contain rounded-lg"
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500">No cancellation proof uploaded</p>
+            )}
+            {order.cancel_reason && (
+              <div className="mt-4">
+                <p className="text-sm text-gray-500 mb-1">Cancellation Reason</p>
+                <p className="text-gray-700">{order.cancel_reason}</p>
+              </div>
+            )}
+            {order.cancel_time && (
+              <div className="flex items-center gap-2 mt-2">
+                <ClockIcon className="w-5 h-5 text-gray-400" />
+                <span>Cancelled at: {new Date(order.cancel_time).toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+        ),
+      }
+    ] : []),
   ];
 
   return (
