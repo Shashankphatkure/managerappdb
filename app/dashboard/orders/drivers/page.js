@@ -90,7 +90,7 @@ export default function DriversTrackingPage() {
         .from("users")
         .select("id, full_name, phone, vehicle_number, vehicle_type, location, email, status")
         .eq("is_active", true)
-        .is("manager", false);
+
 
       if (driversError) throw driversError;
 
