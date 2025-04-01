@@ -103,6 +103,7 @@ export default function DriversTrackingPage() {
           destination, 
           status, 
           created_at, 
+          updated_at,
           driverid, 
           customername, 
           start,
@@ -152,9 +153,11 @@ export default function DriversTrackingPage() {
     // Identify inactive drivers
     const inactiveDrivers = drivers.filter(driver => {
       const lastActivity = driver.latestOrder 
-        ? driver.latestOrder.completiontime 
-          ? new Date(driver.latestOrder.completiontime) 
-          : new Date(driver.latestOrder.created_at)
+        ? driver.latestOrder.updated_at 
+          ? new Date(driver.latestOrder.updated_at)
+          : driver.latestOrder.completiontime 
+            ? new Date(driver.latestOrder.completiontime) 
+            : new Date(driver.latestOrder.created_at)
         : null;
       
       // If driver has no activity or last activity is older than 3 minutes
@@ -226,15 +229,18 @@ export default function DriversTrackingPage() {
   const getTimeSinceLastActivity = (latestOrder) => {
     if (!latestOrder) return { text: "No recent activity", isInactive: true, isUrgent: true };
     
-    const lastOrderTime = latestOrder.completiontime 
-      ? new Date(latestOrder.completiontime) 
-      : new Date(latestOrder.created_at);
+    // Prioritize updated_at timestamp as it reflects the most recent status change
+    const lastOrderTime = latestOrder.updated_at
+      ? new Date(latestOrder.updated_at)
+      : latestOrder.completiontime 
+        ? new Date(latestOrder.completiontime) 
+        : new Date(latestOrder.created_at);
     
     const now = new Date();
     const diffMs = now - lastOrderTime;
     const diffMins = Math.floor(diffMs / 60000);
     
-    // Check if inactive (more than 10 minutes) or urgently inactive (more than 10 minutes)
+    // Check if inactive (more than 3 minutes) or urgently inactive (more than 15 minutes)
     const isInactive = diffMins >= 3;
     const isUrgent = diffMins >= 15;
     
