@@ -145,9 +145,9 @@ export default function DriversTrackingPage() {
     }
   };
 
-  // Check for driver inactivity (no activity in the last 3 minutes)
+  // Check for driver inactivity (no activity in the last 10 minutes)
   const checkDriverInactivity = (drivers) => {
-    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
+    const threeMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
     
     // Identify inactive drivers
     const inactiveDrivers = drivers.filter(driver => {
@@ -173,8 +173,8 @@ export default function DriversTrackingPage() {
     if (inactiveDrivers.length > 0 && !sameDrivers) {
       const driverNames = inactiveDrivers.map(d => d.full_name).join(', ');
       const message = inactiveDrivers.length === 1
-        ? `Driver ${driverNames} has been inactive for more than 3 minutes`
-        : `${inactiveDrivers.length} drivers (${driverNames}) have been inactive for more than 3 minutes`;
+        ? `Driver ${driverNames} has been inactive for more than 10 minutes`
+        : `${inactiveDrivers.length} drivers (${driverNames}) have been inactive for more than 10 minutes`;
       
       toast.warning(message, {
         position: "bottom-right",
@@ -234,9 +234,9 @@ export default function DriversTrackingPage() {
     const diffMs = now - lastOrderTime;
     const diffMins = Math.floor(diffMs / 60000);
     
-    // Check if inactive (more than 3 minutes) or urgently inactive (more than 10 minutes)
+    // Check if inactive (more than 10 minutes) or urgently inactive (more than 10 minutes)
     const isInactive = diffMins >= 3;
-    const isUrgent = diffMins >= 10;
+    const isUrgent = diffMins >= 15;
     
     let text = "";
     if (diffMins < 60) {
