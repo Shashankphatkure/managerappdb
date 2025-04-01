@@ -551,7 +551,7 @@ export default function DriversTrackingPage() {
                               </Link>
                               {activeOrder && (
                                 <Link
-                                  href={`/dashboard/orders/${activeOrder.id}`}
+                                  href={`/dashboard/orders/${activeOrder.id}/view`}
                                   className="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors"
                                   title="View this driver's current order"
                                 >
