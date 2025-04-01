@@ -12,6 +12,7 @@ import {
   DocumentDuplicateIcon,
   MapIcon,
   DocumentCheckIcon,
+  UserGroupIcon,
 } from "@heroicons/react/24/outline";
 
 const getPaymentStatusColor = (status) => {
@@ -210,6 +211,13 @@ export default function OrdersPage() {
       title="Orders"
       actions={
         <div className="flex gap-3">
+          <Link
+            href="/dashboard/orders/drivers"
+            className="dashboard-button-secondary flex items-center gap-2"
+          >
+            <UserGroupIcon className="w-5 h-5" />
+            Track Drivers
+          </Link>
           <Link
             href="/dashboard/orders/map"
             className="dashboard-button-secondary flex items-center gap-2"
