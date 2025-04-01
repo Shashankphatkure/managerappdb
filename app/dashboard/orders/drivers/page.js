@@ -13,6 +13,7 @@ import {
   ClockIcon,
   PhoneIcon,
   ExclamationTriangleIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
 import { toast } from "react-toastify";
 
@@ -488,7 +489,14 @@ export default function DriversTrackingPage() {
                                 </div>
                               </div>
                             ) : (
-                              <span className="text-sm text-gray-500">No active orders</span>
+                              <Link
+                                href={`/dashboard/orders/new?driverId=${driver.id}`}
+                                className="inline-flex items-center px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                                title="Create a new order and assign to this driver"
+                              >
+                                <PlusIcon className="h-3.5 w-3.5 mr-1" />
+                                Assign Order
+                              </Link>
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -532,20 +540,23 @@ export default function DriversTrackingPage() {
                               );
                             })()}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center gap-2">
                               <Link
                                 href={`/dashboard/orders/drivers/${driver.id}`}
-                                className="text-indigo-600 hover:text-indigo-900"
+                                className="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                                title="View driver details and history"
                               >
                                 Details
                               </Link>
                               {activeOrder && (
                                 <Link
                                   href={`/dashboard/orders/${activeOrder.id}`}
-                                  className="text-gray-600 hover:text-gray-900"
+                                  className="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors"
+                                  title="View this driver's current order"
                                 >
-                                  <ArrowRightIcon className="h-4 w-4" />
+                                  View Order
+                                  <ArrowRightIcon className="h-4 w-4 ml-1" />
                                 </Link>
                               )}
                             </div>
