@@ -14,6 +14,7 @@ import {
   PhoneIcon,
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
+import { toast } from "react-toastify";
 
 const getStatusStyle = (status) => {
   const styles = {
@@ -67,6 +68,7 @@ export default function DriversTrackingPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [previousInactiveDriverIds, setPreviousInactiveDriverIds] = useState([]);
   const supabase = createClientComponentClient();
 
   // Define status filters for orders
@@ -90,7 +92,6 @@ export default function DriversTrackingPage() {
         .from("users")
         .select("id, full_name, phone, vehicle_number, vehicle_type, location, email, status")
         .eq("is_active", true)
-
 
       if (driversError) throw driversError;
 
@@ -134,10 +135,58 @@ export default function DriversTrackingPage() {
 
       setDrivers(driversWithOrders);
       setActiveOrders(orders);
+      
+      // Check for inactive drivers
+      checkDriverInactivity(driversWithOrders);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Check for driver inactivity (no activity in the last 3 minutes)
+  const checkDriverInactivity = (drivers) => {
+    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
+    
+    // Identify inactive drivers
+    const inactiveDrivers = drivers.filter(driver => {
+      const lastActivity = driver.latestOrder 
+        ? driver.latestOrder.completiontime 
+          ? new Date(driver.latestOrder.completiontime) 
+          : new Date(driver.latestOrder.created_at)
+        : null;
+      
+      // If driver has no activity or last activity is older than 3 minutes
+      return !lastActivity || lastActivity < threeMinutesAgo;
+    });
+    
+    // Get the IDs of inactive drivers
+    const inactiveDriverIds = inactiveDrivers.map(driver => driver.id);
+    
+    // Check if the inactive drivers list has changed since last notification
+    const sameDrivers = 
+      previousInactiveDriverIds.length === inactiveDriverIds.length && 
+      previousInactiveDriverIds.every(id => inactiveDriverIds.includes(id));
+    
+    // Only show notification if there are inactive drivers and the list has changed
+    if (inactiveDrivers.length > 0 && !sameDrivers) {
+      const driverNames = inactiveDrivers.map(d => d.full_name).join(', ');
+      const message = inactiveDrivers.length === 1
+        ? `Driver ${driverNames} has been inactive for more than 3 minutes`
+        : `${inactiveDrivers.length} drivers (${driverNames}) have been inactive for more than 3 minutes`;
+      
+      toast.warning(message, {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      
+      // Update the list of previously notified inactive drivers
+      setPreviousInactiveDriverIds(inactiveDriverIds);
     }
   };
 
@@ -175,7 +224,7 @@ export default function DriversTrackingPage() {
 
   // Get time since last order
   const getTimeSinceLastActivity = (latestOrder) => {
-    if (!latestOrder) return "No recent activity";
+    if (!latestOrder) return { text: "No recent activity", isInactive: true, isUrgent: true };
     
     const lastOrderTime = latestOrder.completiontime 
       ? new Date(latestOrder.completiontime) 
@@ -185,17 +234,24 @@ export default function DriversTrackingPage() {
     const diffMs = now - lastOrderTime;
     const diffMins = Math.floor(diffMs / 60000);
     
+    // Check if inactive (more than 3 minutes) or urgently inactive (more than 10 minutes)
+    const isInactive = diffMins >= 3;
+    const isUrgent = diffMins >= 10;
+    
+    let text = "";
     if (diffMins < 60) {
-      return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
+      text = `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
     } else {
       const diffHours = Math.floor(diffMins / 60);
       if (diffHours < 24) {
-        return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+        text = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
       } else {
         const diffDays = Math.floor(diffHours / 24);
-        return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+        text = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
       }
     }
+    
+    return { text, isInactive, isUrgent };
   };
 
   return (
@@ -373,9 +429,15 @@ export default function DriversTrackingPage() {
                         o.status !== 'delivered' && 
                         o.status !== 'cancelled'
                       );
+                      
+                      // Check for urgent inactivity status
+                      const activity = getTimeSinceLastActivity(driver.latestOrder);
+                      const rowClass = activity.isUrgent 
+                        ? "hover:bg-red-50 bg-red-50/50" 
+                        : "hover:bg-gray-50";
 
                       return (
-                        <tr key={driver.id} className="hover:bg-gray-50">
+                        <tr key={driver.id} className={rowClass}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-start gap-3">
                               <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -387,7 +449,18 @@ export default function DriversTrackingPage() {
                                 <div className="text-sm font-medium text-gray-900">{driver.full_name}</div>
                                 <div className="text-sm text-gray-500 flex items-center gap-1">
                                   <PhoneIcon className="w-3 h-3" />
-                                  {driver.phone || "No phone"}
+                                  {driver.phone ? (
+                                    <a 
+                                      href={`tel:${driver.phone}`} 
+                                      className="inline-flex items-center gap-1 hover:text-indigo-600 hover:underline transition-colors relative group"
+                                      title="Click to call"
+                                    >
+                                      {driver.phone}
+                                      
+                                    </a>
+                                  ) : (
+                                    "No phone"
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -440,8 +513,18 @@ export default function DriversTrackingPage() {
                               </span>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {getTimeSinceLastActivity(driver.latestOrder)}
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            {(() => {
+                              const activity = getTimeSinceLastActivity(driver.latestOrder);
+                              return (
+                                <span className={`${activity.isInactive ? (activity.isUrgent ? "text-red-700 font-semibold" : "text-red-600 font-medium") : "text-gray-500"} flex items-center`}>
+                                  {activity.text}
+                                  {activity.isInactive && (
+                                    <span className={`ml-1 inline-flex h-2 w-2 rounded-full ${activity.isUrgent ? "bg-red-600 animate-ping" : "bg-red-400 animate-pulse"}`}></span>
+                                  )}
+                                </span>
+                              );
+                            })()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center gap-2">
