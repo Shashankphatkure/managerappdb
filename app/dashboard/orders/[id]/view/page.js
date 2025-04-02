@@ -17,8 +17,36 @@ import {
   ArrowLeftIcon,
   PencilSquareIcon,
   XMarkIcon,
+  CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
+
+// CSS for the timeline
+const timelineStyles = {
+  container: "py-2 max-h-[500px] overflow-y-auto pr-2",
+  line: "absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200",
+  item: "relative flex items-start mb-6",
+  iconContainer: "flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center z-10",
+  content: "ml-4 flex-1",
+  title: "text-sm font-medium text-gray-900",
+  time: "mt-1 text-xs text-gray-500",
+  remark: "mt-1 text-xs text-gray-600 bg-gray-50 p-1.5 rounded",
+};
+
+// Get icon color by status
+const getStatusIconColor = (status) => {
+  const colors = {
+    pending: "bg-yellow-500",
+    confirmed: "bg-blue-500",
+    accepted: "bg-green-500",
+    picked_up: "bg-yellow-500",
+    on_way: "bg-indigo-500",
+    reached: "bg-purple-500",
+    delivered: "bg-green-600",
+    cancelled: "bg-red-500",
+  };
+  return colors[status] || "bg-gray-500";
+};
 
 export default function ViewOrderPage({ params }) {
   const router = useRouter();
@@ -88,6 +116,33 @@ export default function ViewOrderPage({ params }) {
         .single();
 
       if (error) throw error;
+      
+      // Ensure all date fields are properly formatted for the timeline
+      if (data) {
+        // Format the timestamp fields into Date objects if they exist
+        const timestampFields = [
+          'created_at', 
+          'updated_at', 
+          'accepted_time', 
+          'pickup_time', 
+          'on_way_time', 
+          'reached_time', 
+          'completiontime', 
+          'cancel_time'
+        ];
+        
+        timestampFields.forEach(field => {
+          if (data[field] && typeof data[field] === 'string') {
+            try {
+              // Just ensure it's a valid date string
+              new Date(data[field]);
+            } catch (e) {
+              console.warn(`Invalid date format for ${field}:`, data[field]);
+            }
+          }
+        });
+      }
+      
       setOrder(data);
       
       // Set the new status to current status for the form
@@ -138,19 +193,43 @@ export default function ViewOrderPage({ params }) {
         updatedbymanager: true, // Set to true when manager updates status
       };
       
-      // If status is cancelled and previous status wasn't cancelled, set cancel_time
-      if (newStatus === 'cancelled' && order.status !== 'cancelled') {
-        updateData.cancel_time = new Date().toISOString();
-        
-        // If no cancel reason is specified, add a default one
-        if (!order.cancel_reason) {
-          updateData.cancel_reason = 'cancelled_by_manager';
-        }
-      }
-      
-      // If status is delivered and previous status wasn't delivered, set completiontime
-      if (newStatus === 'delivered' && order.status !== 'delivered') {
-        updateData.completiontime = new Date().toISOString();
+      // Set timestamp based on the new status
+      switch(newStatus) {
+        case 'accepted':
+          // Only set accepted_time if not already set
+          if (!order.accepted_time) {
+            updateData.accepted_time = new Date().toISOString();
+          }
+          break;
+        case 'picked_up':
+          // Add pickup_time field if your schema has it
+          updateData.pickup_time = new Date().toISOString();
+          break;
+        case 'on_way':
+          // Add on_way_time field if your schema has it
+          updateData.on_way_time = new Date().toISOString();
+          break;
+        case 'reached':
+          // Add reached_time field if your schema has it
+          updateData.reached_time = new Date().toISOString();
+          break;
+        case 'delivered':
+          // Set completiontime when status changes to delivered
+          updateData.completiontime = new Date().toISOString();
+          break;
+        case 'cancelled':
+          // Set cancel_time when status changes to cancelled
+          const currentTime = new Date().toISOString();
+          updateData.cancel_time = currentTime;
+          
+          // Also set completiontime to ensure we have a timestamp for cancelled orders
+          updateData.completiontime = currentTime;
+          
+          // If no cancel reason is specified, add a default one
+          if (!order.cancel_reason) {
+            updateData.cancel_reason = 'cancelled_by_manager';
+          }
+          break;
       }
       
       const { error } = await supabase
@@ -309,6 +388,147 @@ export default function ViewOrderPage({ params }) {
       ),
     },
     {
+      title: "Order Timeline",
+      icon: ClockIcon,
+      content: (
+        <div className={timelineStyles.container}>
+          <div className="relative">
+            {/* Timeline line */}
+            <div className={timelineStyles.line}></div>
+            
+            {/* Created milestone */}
+            <div className={timelineStyles.item}>
+              <div className={`${timelineStyles.iconContainer} ${getStatusIconColor('pending')}`}>
+                <ClockIcon className="h-4 w-4 text-white" />
+              </div>
+              <div className={timelineStyles.content}>
+                <h3 className={timelineStyles.title}>Order Created</h3>
+                <p className={timelineStyles.time}>
+                  {new Date(order.created_at).toLocaleString()}
+                </p>
+              </div>
+            </div>
+            
+            {/* Accepted milestone - if status is accepted or beyond and accepted_time exists */}
+            {(order.status === "accepted" ||
+              order.status === "picked_up" ||
+              order.status === "on_way" ||
+              order.status === "reached" ||
+              order.status === "delivered") && order.accepted_time && (
+              <div className={timelineStyles.item}>
+                <div className={`${timelineStyles.iconContainer} ${getStatusIconColor('accepted')}`}>
+                  <UserIcon className="h-4 w-4 text-white" />
+                </div>
+                <div className={timelineStyles.content}>
+                  <h3 className={timelineStyles.title}>Accepted by Driver</h3>
+                  <p className={timelineStyles.time}>
+                    {new Date(order.accepted_time).toLocaleString()}
+                  </p>
+                  {order.drivername && (
+                    <p className="mt-1 text-xs text-blue-600">
+                      {order.drivername}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Picked up milestone - if status is picked_up or beyond */}
+            {(order.status === "picked_up" ||
+              order.status === "on_way" ||
+              order.status === "reached" ||
+              order.status === "delivered") && order.pickup_time && (
+              <div className={timelineStyles.item}>
+                <div className={`${timelineStyles.iconContainer} ${getStatusIconColor('picked_up')}`}>
+                  <BuildingStorefrontIcon className="h-4 w-4 text-white" />
+                </div>
+                <div className={timelineStyles.content}>
+                  <h3 className={timelineStyles.title}>Picked Up from Store</h3>
+                  <p className={timelineStyles.time}>
+                    {new Date(order.pickup_time).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* On the way milestone - if status is on_way or beyond */}
+            {(order.status === "on_way" ||
+              order.status === "reached" ||
+              order.status === "delivered") && order.on_way_time && (
+              <div className={timelineStyles.item}>
+                <div className={`${timelineStyles.iconContainer} ${getStatusIconColor('on_way')}`}>
+                  <TruckIcon className="h-4 w-4 text-white" />
+                </div>
+                <div className={timelineStyles.content}>
+                  <h3 className={timelineStyles.title}>On The Way</h3>
+                  <p className={timelineStyles.time}>
+                    {new Date(order.on_way_time).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* Reached milestone - if status is reached or beyond */}
+            {(order.status === "reached" ||
+              order.status === "delivered") && order.reached_time && (
+              <div className={timelineStyles.item}>
+                <div className={`${timelineStyles.iconContainer} ${getStatusIconColor('reached')}`}>
+                  <MapPinIcon className="h-4 w-4 text-white" />
+                </div>
+                <div className={timelineStyles.content}>
+                  <h3 className={timelineStyles.title}>Reached Destination</h3>
+                  <p className={timelineStyles.time}>
+                    {new Date(order.reached_time).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* Delivered milestone - if delivered */}
+            {order.status === "delivered" && (
+              <div className={timelineStyles.item}>
+                <div className={`${timelineStyles.iconContainer} ${getStatusIconColor('delivered')}`}>
+                  <CheckCircleIcon className="h-4 w-4 text-white" />
+                </div>
+                <div className={timelineStyles.content}>
+                  <h3 className={timelineStyles.title}>Delivered Successfully</h3>
+                  <p className={timelineStyles.time}>
+                    {order.completiontime ? new Date(order.completiontime).toLocaleString() : "Unknown time"}
+                  </p>
+                  {order.remark && (
+                    <p className={timelineStyles.remark}>
+                      Remark: {formatRemarkText(order.remark)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Cancelled milestone - if cancelled */}
+            {order.status === "cancelled" && (
+              <div className={timelineStyles.item}>
+                <div className={`${timelineStyles.iconContainer} ${getStatusIconColor('cancelled')}`}>
+                  <XMarkIcon className="h-4 w-4 text-white" />
+                </div>
+                <div className={timelineStyles.content}>
+                  <h3 className={timelineStyles.title}>Order Cancelled</h3>
+                  <p className={timelineStyles.time}>
+                    {order.cancel_time ? new Date(order.cancel_time).toLocaleString() : 
+                     order.completiontime ? new Date(order.completiontime).toLocaleString() : "Unknown time"}
+                  </p>
+                  {order.cancel_reason && (
+                    <p className={timelineStyles.remark + " bg-red-50"}>
+                      Reason: {formatRemarkText(order.cancel_reason)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
       title: "Customer Details",
       icon: UserIcon,
       content: (
@@ -450,12 +670,20 @@ export default function ViewOrderPage({ params }) {
                 <p className="text-gray-700">{formatRemarkText(order.cancel_reason)}</p>
               </div>
             )}
-            {order.cancel_time && (
-              <div className="flex items-center gap-2 mt-2">
-                <ClockIcon className="w-5 h-5 text-gray-400" />
-                <span>Cancelled at: {new Date(order.cancel_time).toLocaleString()}</span>
-              </div>
-            )}
+            <div className="space-y-1 mt-2">
+              {order.cancel_time && (
+                <div className="flex items-center gap-2">
+                  <ClockIcon className="w-5 h-5 text-gray-400" />
+                  <span>Cancelled at: {new Date(order.cancel_time).toLocaleString()}</span>
+                </div>
+              )}
+              {!order.cancel_time && order.completiontime && order.status === "cancelled" && (
+                <div className="flex items-center gap-2">
+                  <ClockIcon className="w-5 h-5 text-gray-400" />
+                  <span>Cancelled at: {new Date(order.completiontime).toLocaleString()}</span>
+                </div>
+              )}
+            </div>
           </div>
         ),
       }
