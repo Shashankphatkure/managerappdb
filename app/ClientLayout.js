@@ -17,6 +17,11 @@ import {
   UserCircleIcon,
   ChevronRightIcon,
   DocumentDuplicateIcon,
+  ClipboardDocumentListIcon,
+  MapPinIcon,
+  ReceiptRefundIcon,
+  DocumentChartBarIcon,
+  MegaphoneIcon,
 } from "@heroicons/react/24/outline";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import SearchOverlay from "./components/SearchOverlay";
@@ -106,11 +111,11 @@ export default function ClientLayout({ children }) {
     { path: "/dashboard/customers", label: "Customers", icon: UserGroupIcon },
     
     { path: "/dashboard/orders", label: "Orders", icon: ShoppingBagIcon },
-    { path: "/dashboard/orders/drivers", label: "Track Driver", icon: TruckIcon },
+    { path: "/dashboard/orders/drivers", label: "Track Driver", icon: MapPinIcon },
     { path: "/dashboard/batches", label: "Batches", icon: DocumentDuplicateIcon },
     { path: "/dashboard/drivers", label: "Drivers", icon: TruckIcon },
     { path: "/dashboard/payments", label: "Payments", icon: BanknotesIcon },
-    { path: "/dashboard/reports", label: "Reports", icon: ChartBarIcon },
+    { path: "/dashboard/reports", label: "Reports", icon: DocumentChartBarIcon },
     {
       path: "/dashboard/penalties",
       label: "Penalties",
@@ -124,7 +129,7 @@ export default function ClientLayout({ children }) {
     {
       path: "/dashboard/announcements",
       label: "Announcements",
-      icon: BellIcon,
+      icon: MegaphoneIcon,
     },
   ];
 
