@@ -32,6 +32,8 @@ function NewOrderContent() {
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [calculatingRoute, setCalculatingRoute] = useState(false);
   const [routeCalculationFailed, setRouteCalculationFailed] = useState(false);
+  const [calculatedCreatedAt, setCalculatedCreatedAt] = useState(null);
+  const [isCheckingDriverOrders, setIsCheckingDriverOrders] = useState(false);
 
   const [formData, setFormData] = useState({
     customerid: "",
@@ -218,9 +220,10 @@ function NewOrderContent() {
     }));
   };
 
-  const selectDriver = (driver) => {
+  const selectDriver = async (driver) => {
     setSelectedDriver(driver);
     setDriverSearch("");
+    setIsCheckingDriverOrders(true);
 
     setFormData((prev) => ({
       ...prev,
@@ -228,6 +231,30 @@ function NewOrderContent() {
       drivername: driver?.full_name || "",
       driveremail: driver?.email || "",
     }));
+    
+    // Check if driver has previous orders and calculate potential created_at time
+    try {
+      const createdAt = await calculateOrderCreatedAt(driver.id);
+      setCalculatedCreatedAt(createdAt);
+      console.log(`Potential created_at time for new order: ${createdAt.toISOString()}`);
+      
+      // Recalculate estimated delivery time based on this new created_at time if we have a time estimate
+      if (formData.time) {
+        const newEstimatedDeliveryTime = calculateEstimatedDeliveryTime(formData.time, createdAt);
+        console.log(`Recalculated estimated delivery time based on driver's timing: ${newEstimatedDeliveryTime}`);
+        
+        // Update the form data with the new estimated delivery time
+        setFormData(prev => ({
+          ...prev,
+          estimated_delivery_time: newEstimatedDeliveryTime
+        }));
+      }
+    } catch (error) {
+      console.error("Error calculating potential created_at time:", error);
+      setCalculatedCreatedAt(null);
+    } finally {
+      setIsCheckingDriverOrders(false);
+    }
   };
 
   const handleStoreChange = (e) => {
@@ -259,7 +286,9 @@ function NewOrderContent() {
       
       // If time is being manually updated, recalculate estimated delivery time
       if (name === 'time' && value) {
-        updated.estimated_delivery_time = calculateEstimatedDeliveryTime(value);
+        // Use calculatedCreatedAt as base time if available and a driver is selected
+        const baseTime = calculatedCreatedAt && formData.driverid ? calculatedCreatedAt : null;
+        updated.estimated_delivery_time = calculateEstimatedDeliveryTime(value, baseTime);
       }
       
       return updated;
@@ -310,7 +339,7 @@ function NewOrderContent() {
   }
 
   // Calculates and sets the estimated delivery timestamp
-  function calculateEstimatedDeliveryTime(timeString) {
+  function calculateEstimatedDeliveryTime(timeString, baseTime = null) {
     // If no time provided, don't calculate
     if (!timeString || timeString === "Could not calculate") {
       return null;
@@ -320,16 +349,130 @@ function NewOrderContent() {
       // Parse the time string to minutes
       const minutesToAdd = parseTimeToMinutes(timeString);
       
-      // Create a timestamp for now + estimated delivery time
-      const estimatedDeliveryTime = new Date();
+      // Create a timestamp for baseTime (or now) + estimated delivery time
+      const base = baseTime ? new Date(baseTime) : new Date();
+      const estimatedDeliveryTime = new Date(base);
       estimatedDeliveryTime.setMinutes(estimatedDeliveryTime.getMinutes() + minutesToAdd);
       
-      console.log(`Calculated estimated delivery time: ${estimatedDeliveryTime.toISOString()}`);
+      console.log(`Calculated estimated delivery time: ${estimatedDeliveryTime.toISOString()} (based on ${base.toISOString()})`);
       return estimatedDeliveryTime.toISOString();
     } catch (error) {
       console.error("Error calculating delivery timestamp:", error);
       return null;
     }
+  }
+
+  // Fetch the driver's most recent order
+  async function fetchLastDriverOrder(driverId) {
+    if (!driverId) return null;
+    
+    console.log(`Fetching last order for driver: ${driverId}`);
+    
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("driverid", driverId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+        
+      if (error) {
+        console.error("Error fetching driver's last order:", error);
+        return null;
+      }
+      
+      if (data && data.length > 0) {
+        console.log("Found driver's last order:", data[0]);
+        return data[0];
+      } else {
+        console.log("No previous orders found for this driver");
+        return null;
+      }
+    } catch (error) {
+      console.error("Exception fetching driver's last order:", error);
+      return null;
+    }
+  }
+  
+  // Calculate appropriate created_at timestamp for new order
+  async function calculateOrderCreatedAt(driverId) {
+    if (!driverId) {
+      console.log("No driver selected, using current timestamp");
+      return new Date();
+    }
+    
+    // Get driver's last order
+    const lastOrder = await fetchLastDriverOrder(driverId);
+    
+    if (!lastOrder) {
+      console.log("No previous orders for driver, using current timestamp");
+      return new Date();
+    }
+    
+    let calculatedTime = null;
+    const now = new Date();
+    
+    // Case 1: If last order has a completion time, use that as the base
+    if (lastOrder.completiontime) {
+      try {
+        console.log("Using last order completion time as base:", lastOrder.completiontime);
+        
+        // Check if completiontime is a timestamp or a string
+        if (typeof lastOrder.completiontime === 'string') {
+          // Try to parse as ISO date
+          if (lastOrder.completiontime.includes('Z') || lastOrder.completiontime.includes('T')) {
+            calculatedTime = new Date(lastOrder.completiontime);
+            console.log(`Parsed completion time: ${calculatedTime.toISOString()}`);
+          } else {
+            // Handle case where completiontime might be a text description, not a timestamp
+            console.log("Last order has text completion time, using current timestamp");
+            calculatedTime = now;
+          }
+        } else if (lastOrder.completiontime instanceof Date) {
+          calculatedTime = lastOrder.completiontime;
+        } else {
+          console.log("Unrecognized completiontime format, using current timestamp");
+          calculatedTime = now;
+        }
+      } catch (error) {
+        console.error("Error parsing completion time:", error);
+        calculatedTime = now;
+      }
+    }
+    
+    // Case 2: If we couldn't use completiontime but have estimated_delivery_time, use that
+    if (!calculatedTime && lastOrder.estimated_delivery_time) {
+      try {
+        console.log("Using last order's estimated delivery time as base:", lastOrder.estimated_delivery_time);
+        calculatedTime = new Date(lastOrder.estimated_delivery_time);
+      } catch (error) {
+        console.error("Error parsing estimated delivery time:", error);
+        calculatedTime = now;
+      }
+    }
+    
+    // Case 3: Default to current time if we couldn't determine a time
+    if (!calculatedTime) {
+      console.log("No relevant timestamps found in last order, using current timestamp");
+      calculatedTime = now;
+    }
+    
+    // Make sure the calculated time is not in the past
+    // If it is > 5 minutes in the past, use current time instead
+    if (calculatedTime < new Date(now.getTime() - 5 * 60 * 1000)) {
+      console.log("Calculated time is more than 5 minutes in the past, using current time instead");
+      console.log(`Past time: ${calculatedTime.toISOString()}, Current time: ${now.toISOString()}`);
+      return now;
+    }
+    
+    // Add a small buffer (10 seconds) if we're using a time from another order
+    // This ensures consecutive orders for the same driver are properly sequenced
+    if (calculatedTime.getTime() !== now.getTime()) {
+      calculatedTime = new Date(calculatedTime.getTime() + 10 * 1000);
+      console.log(`Added 10-second buffer to calculated time: ${calculatedTime.toISOString()}`);
+    }
+    
+    return calculatedTime;
   }
 
   async function calculateRoute() {
@@ -404,8 +547,11 @@ function NewOrderContent() {
         console.log("Route calculation returned an estimated result");
       }
 
+      // Get base time for estimating delivery (use calculatedCreatedAt if available)
+      const baseTime = calculatedCreatedAt && formData.driverid ? calculatedCreatedAt : null;
+      
       // Calculate estimated delivery time
-      const estimatedDeliveryTime = calculateEstimatedDeliveryTime(data.legs[0].duration);
+      const estimatedDeliveryTime = calculateEstimatedDeliveryTime(data.legs[0].duration, baseTime);
 
       setFormData((prev) => ({
         ...prev,
@@ -421,6 +567,7 @@ function NewOrderContent() {
         distance: data.legs[0].distance,
         duration: data.legs[0].duration,
         estimated: data.estimated || data.legs[0].estimated,
+        baseTime: baseTime ? baseTime.toISOString() : 'current time',
         estimated_delivery_time: estimatedDeliveryTime
       });
     } catch (error) {
@@ -462,12 +609,20 @@ function NewOrderContent() {
       // Get store details
       const store = stores.find((s) => s.id === formData.storeid);
       console.log("Store for order:", store);
+      
+      // Calculate appropriate created_at timestamp if driver is assigned
+      let createdAt = null;
+      if (formData.driverid) {
+        createdAt = await calculateOrderCreatedAt(formData.driverid);
+        console.log(`Calculated created_at time for new order: ${createdAt.toISOString()}`);
+      }
 
       // Prepare order data
       const orderData = {
         customerid: formData.customerid,
         customername: customer?.full_name || "",
         storeid: formData.storeid,
+        store_name: store?.name || "",
         start: formData.start,
         destination: formData.destination,
         total_amount: parseFloat(formData.total_amount),
@@ -482,8 +637,23 @@ function NewOrderContent() {
         distance: formData.distance || "",
         time: formData.time || "",
         change_amount: parseFloat(formData.change_amount) || null,
-        estimated_delivery_time: formData.estimated_delivery_time,
       };
+      
+      // Add created_at only if we calculated a custom timestamp
+      if (createdAt) {
+        orderData.created_at = createdAt.toISOString();
+        
+        // Recalculate estimated_delivery_time based on custom created_at
+        if (formData.time) {
+          orderData.estimated_delivery_time = calculateEstimatedDeliveryTime(formData.time, createdAt);
+          console.log(`Adjusted estimated_delivery_time to be based on created_at: ${orderData.estimated_delivery_time}`);
+        } else {
+          orderData.estimated_delivery_time = formData.estimated_delivery_time;
+        }
+      } else {
+        // Use the originally calculated estimated_delivery_time
+        orderData.estimated_delivery_time = formData.estimated_delivery_time;
+      }
       
       console.log("Order data being submitted:", orderData);
 
@@ -692,6 +862,44 @@ function NewOrderContent() {
                     <div className="text-sm text-gray-600">{selectedDriver.phone || 'No phone'}</div>
                   </div>
                 )}
+                
+                {isCheckingDriverOrders && (
+                  <div className="mt-2 flex items-center text-sm text-gray-600">
+                    <svg className="animate-spin h-4 w-4 mr-2 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Checking driver's previous orders...
+                  </div>
+                )}
+                
+                {calculatedCreatedAt && calculatedCreatedAt.getTime() > new Date().getTime() - 1000 * 60 && calculatedCreatedAt.getTime() < new Date().getTime() + 1000 * 60 ? (
+                  <div className="mt-2 p-3 border border-gray-200 rounded-md bg-gray-50">
+                    <p className="text-sm text-gray-600">
+                      This order will be created with the current time.
+                    </p>
+                  </div>
+                ) : calculatedCreatedAt && (
+                  <div className="mt-2 p-3 border border-orange-200 rounded-md bg-orange-50">
+                    <div className="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-orange-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="font-medium text-sm text-orange-800">
+                        Scheduled Order Creation
+                      </span>
+                    </div>
+                    <p className="text-sm text-orange-700 mt-1">
+                      Based on this driver's previous orders, this order will be created with a timestamp of:
+                    </p>
+                    <p className="font-medium text-sm mt-1">
+                      {calculatedCreatedAt.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-orange-700 mt-1">
+                      This helps maintain proper sequencing of orders for the driver.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Add manual distance/time entry if calculation failed */}
@@ -728,7 +936,9 @@ function NewOrderContent() {
                         onBlur={(e) => {
                           if (e.target.value) {
                             // Calculate estimated delivery time when manually entered
-                            const estimatedDeliveryTime = calculateEstimatedDeliveryTime(e.target.value);
+                            // Use calculatedCreatedAt as base time if available and a driver is selected
+                            const baseTime = calculatedCreatedAt && formData.driverid ? calculatedCreatedAt : null;
+                            const estimatedDeliveryTime = calculateEstimatedDeliveryTime(e.target.value, baseTime);
                             setFormData(prev => ({
                               ...prev,
                               estimated_delivery_time: estimatedDeliveryTime
@@ -749,6 +959,11 @@ function NewOrderContent() {
                           Calculated Delivery Time: {new Date(formData.estimated_delivery_time).toLocaleString()}
                         </span>
                       </div>
+                      {calculatedCreatedAt && formData.driverid && (
+                        <p className="text-xs text-blue-700 mt-1 ml-7">
+                          Based on driver's scheduled start time: {calculatedCreatedAt.toLocaleString()}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -805,7 +1020,9 @@ function NewOrderContent() {
                           </span>
                         </div>
                         <p className="text-xs text-blue-700 mt-1">
-                          The order's estimated delivery time will be saved for future reference.
+                          {calculatedCreatedAt && formData.driverid && calculatedCreatedAt.getTime() > new Date().getTime() + 60000 ? 
+                            `Based on driver's scheduled start time: ${calculatedCreatedAt.toLocaleString()}` : 
+                            "The order's estimated delivery time will be saved for future reference."}
                         </p>
                       </div>
                     </div>
