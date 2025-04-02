@@ -60,6 +60,7 @@ export default function ViewOrderPage({ params }) {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [newStatus, setNewStatus] = useState("");
   const [managerRemark, setManagerRemark] = useState("");
+  const [estimatedDeliveryTime, setEstimatedDeliveryTime] = useState("");
   
   // Status options for dropdown
   const statusOptions = [
@@ -128,7 +129,8 @@ export default function ViewOrderPage({ params }) {
           'on_way_time', 
           'reached_time', 
           'completiontime', 
-          'cancel_time'
+          'cancel_time',
+          'estimated_delivery_time'
         ];
         
         timestampFields.forEach(field => {
@@ -148,6 +150,11 @@ export default function ViewOrderPage({ params }) {
       // Set the new status to current status for the form
       if (data && data.status) {
         setNewStatus(data.status);
+      }
+      
+      // Set the estimated delivery time if available
+      if (data && data.estimated_delivery_time) {
+        setEstimatedDeliveryTime(data.estimated_delivery_time);
       }
 
       if (data.photo_proof) {
@@ -192,6 +199,11 @@ export default function ViewOrderPage({ params }) {
         managerremark: managerRemark,
         updatedbymanager: true, // Set to true when manager updates status
       };
+      
+      // If estimated delivery time is set, add it to the update data
+      if (estimatedDeliveryTime) {
+        updateData.estimated_delivery_time = estimatedDeliveryTime;
+      }
       
       // Set timestamp based on the new status
       switch(newStatus) {
@@ -384,6 +396,14 @@ export default function ViewOrderPage({ params }) {
               </p>
             </div>
           )}
+          {order.estimated_delivery_time && (
+            <div>
+              <p className="text-sm text-gray-500">Estimated Delivery Time</p>
+              <p className="font-medium text-indigo-600">
+                {new Date(order.estimated_delivery_time).toLocaleString()}
+              </p>
+            </div>
+          )}
         </div>
       ),
     },
@@ -406,6 +426,11 @@ export default function ViewOrderPage({ params }) {
                 <p className={timelineStyles.time}>
                   {new Date(order.created_at).toLocaleString()}
                 </p>
+                {order.estimated_delivery_time && (
+                  <p className={timelineStyles.remark + " bg-indigo-50 text-indigo-700"}>
+                    Est. Delivery: {new Date(order.estimated_delivery_time).toLocaleString()}
+                  </p>
+                )}
               </div>
             </div>
             
@@ -582,6 +607,12 @@ export default function ViewOrderPage({ params }) {
             <div className="flex items-center gap-2">
               <MapPinIcon className="w-5 h-5 text-gray-400" />
               <span>Distance: {order.distance}</span>
+            </div>
+          )}
+          {order.estimated_delivery_time && (
+            <div className="flex items-center gap-2">
+              <ClockIcon className="w-5 h-5 text-gray-400" />
+              <span>Estimated Delivery: {new Date(order.estimated_delivery_time).toLocaleString()}</span>
             </div>
           )}
         </div>
@@ -786,6 +817,19 @@ export default function ViewOrderPage({ params }) {
                     placeholder="Add any notes or comments about this status change"
                     value={managerRemark}
                     onChange={(e) => setManagerRemark(e.target.value)}
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="estimatedDeliveryTime" className="block text-sm font-medium text-gray-700 mb-1">
+                    Estimated Delivery Time (Optional)
+                  </label>
+                  <input
+                    type="datetime-local"
+                    id="estimatedDeliveryTime"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    value={estimatedDeliveryTime ? new Date(estimatedDeliveryTime).toISOString().slice(0, 16) : ""}
+                    onChange={(e) => setEstimatedDeliveryTime(e.target.value ? new Date(e.target.value).toISOString() : "")}
                   />
                 </div>
               </div>
