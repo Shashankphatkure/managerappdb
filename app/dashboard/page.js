@@ -3,7 +3,6 @@ import dynamic from "next/dynamic";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import {
-  HomeIcon,
   ShoppingBagIcon,
   UserGroupIcon,
   TruckIcon,
@@ -11,6 +10,8 @@ import {
   CurrencyDollarIcon,
   BuildingStorefrontIcon,
   BanknotesIcon,
+  ClipboardDocumentListIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
 
 const DashboardStats = dynamic(() => import("./components/DashboardStats"), {
@@ -44,7 +45,7 @@ export default function Dashboard() {
       title: "Orders",
       link: "/dashboard/orders",
       description: "Manage and track orders",
-      icon: HomeIcon,
+      icon: ShoppingBagIcon,
     },
     {
       title: "Drivers",
@@ -80,7 +81,7 @@ export default function Dashboard() {
       title: "Managers",
       link: "/dashboard/managers",
       description: "Manage system administrators",
-      icon: UserGroupIcon,
+      icon: UsersIcon,
     },
   ];
 

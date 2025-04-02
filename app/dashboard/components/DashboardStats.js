@@ -9,6 +9,8 @@ import {
   BanknotesIcon,
   ExclamationTriangleIcon,
   CurrencyDollarIcon,
+  ShoppingBagIcon,
+  UserMinusIcon,
 } from "@heroicons/react/24/outline";
 
 export default function DashboardStats() {
@@ -112,14 +114,14 @@ export default function DashboardStats() {
     {
       title: "INACTIVE DRIVERS",
       value: stats.inactiveDrivers,
-      icon: TruckIcon,
+      icon: UserMinusIcon,
       color: "emerald",
       onClick: () => handleNavigation("/dashboard/drivers?status=inactive"),
     },
     {
       title: "PENDING ORDERS",
       value: stats.pendingOrders,
-      icon: ClockIcon,
+      icon: ShoppingBagIcon,
       color: "yellow",
       onClick: () => handleNavigation("/dashboard/orders?status=pending"),
     },
@@ -133,7 +135,7 @@ export default function DashboardStats() {
     {
       title: "PENDING PAYMENTS",
       value: stats.pendingPayments,
-      icon: BanknotesIcon,
+      icon: CurrencyDollarIcon,
       color: "purple",
       onClick: () => handleNavigation("/dashboard/payments?status=pending"),
     },
