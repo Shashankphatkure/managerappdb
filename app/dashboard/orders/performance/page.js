@@ -607,7 +607,7 @@ export default function DriverPerformancePage() {
                                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Distance
                                   </th>
-                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
                                     Comparison
                                   </th>
                                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -646,12 +646,12 @@ export default function DriverPerformancePage() {
                                           {order.distance || "N/A"}
                                         </td>
                                         <td className="px-4 py-2 text-sm text-gray-500">
-                                          <div className="text-xs">
+                                          <div className="text-xs space-y-1">
                                             {order.estimated_delivery_time && (
-                                              <div>Est: {formatDate(order.estimated_delivery_time)}</div>
+                                              <div className="whitespace-nowrap">Est: {formatDate(order.estimated_delivery_time)}</div>
                                             )}
                                             {order.completiontime && (
-                                              <div>Act: {formatDate(order.completiontime)}</div>
+                                              <div className="whitespace-nowrap">Act: {formatDate(order.completiontime)}</div>
                                             )}
                                           </div>
                                         </td>
