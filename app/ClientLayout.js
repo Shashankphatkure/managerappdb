@@ -106,6 +106,7 @@ export default function ClientLayout({ children }) {
     { path: "/dashboard/customers", label: "Customers", icon: UserGroupIcon },
     
     { path: "/dashboard/orders", label: "Orders", icon: ShoppingBagIcon },
+    { path: "/dashboard/orders/drivers", label: "Track Driver", icon: TruckIcon },
     { path: "/dashboard/batches", label: "Batches", icon: DocumentDuplicateIcon },
     { path: "/dashboard/drivers", label: "Drivers", icon: TruckIcon },
     { path: "/dashboard/payments", label: "Payments", icon: BanknotesIcon },
