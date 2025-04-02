@@ -49,6 +49,7 @@ function NewOrderContent() {
     time: "",
     change_amount: "",
     estimated: false,
+    estimated_delivery_time: null, // Add new field for estimated delivery timestamp
   });
 
   useEffect(() => {
@@ -249,10 +250,20 @@ function NewOrderContent() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [name]: value,
+      };
+      
+      // If time is being manually updated, recalculate estimated delivery time
+      if (name === 'time' && value) {
+        updated.estimated_delivery_time = calculateEstimatedDeliveryTime(value);
+      }
+      
+      return updated;
+    });
   };
 
   const handleAddressChange = (e) => {
@@ -280,6 +291,47 @@ function NewOrderContent() {
     return hasAddressComponents;
   }
 
+  // Helper function to parse time string (e.g. "30 mins") to minutes
+  function parseTimeToMinutes(timeString) {
+    if (!timeString || typeof timeString !== 'string') return 0;
+    
+    // Try to extract numerical value and time unit
+    const match = timeString.match(/(\d+)(?:\s*)(\w+)/);
+    if (!match) return 0;
+    
+    const value = parseInt(match[1], 10);
+    const unit = match[2].toLowerCase();
+    
+    if (unit.includes('min')) return value;
+    if (unit.includes('hour')) return value * 60;
+    if (unit.includes('day')) return value * 24 * 60;
+    
+    return value; // Default assuming minutes
+  }
+
+  // Calculates and sets the estimated delivery timestamp
+  function calculateEstimatedDeliveryTime(timeString) {
+    // If no time provided, don't calculate
+    if (!timeString || timeString === "Could not calculate") {
+      return null;
+    }
+
+    try {
+      // Parse the time string to minutes
+      const minutesToAdd = parseTimeToMinutes(timeString);
+      
+      // Create a timestamp for now + estimated delivery time
+      const estimatedDeliveryTime = new Date();
+      estimatedDeliveryTime.setMinutes(estimatedDeliveryTime.getMinutes() + minutesToAdd);
+      
+      console.log(`Calculated estimated delivery time: ${estimatedDeliveryTime.toISOString()}`);
+      return estimatedDeliveryTime.toISOString();
+    } catch (error) {
+      console.error("Error calculating delivery timestamp:", error);
+      return null;
+    }
+  }
+
   async function calculateRoute() {
     if (!formData.start || !formData.destination) {
       console.log("Cannot calculate route: Missing start or destination", {
@@ -300,6 +352,7 @@ function NewOrderContent() {
         ...prev,
         distance: "Need valid address",
         time: "Need valid address",
+        estimated_delivery_time: null,
       }));
       
       setRouteCalculationFailed(true);
@@ -336,6 +389,7 @@ function NewOrderContent() {
           ...prev,
           distance: "Could not calculate",
           time: "Could not calculate",
+          estimated_delivery_time: null,
         }));
         
         setRouteCalculationFailed(true);
@@ -350,11 +404,15 @@ function NewOrderContent() {
         console.log("Route calculation returned an estimated result");
       }
 
+      // Calculate estimated delivery time
+      const estimatedDeliveryTime = calculateEstimatedDeliveryTime(data.legs[0].duration);
+
       setFormData((prev) => ({
         ...prev,
         distance: data.legs[0].distance,
         time: data.legs[0].duration,
         estimated: data.estimated || data.legs[0].estimated,
+        estimated_delivery_time: estimatedDeliveryTime,
       }));
       
       setRouteCalculationFailed(false);
@@ -362,7 +420,8 @@ function NewOrderContent() {
       console.log("Route calculated successfully:", {
         distance: data.legs[0].distance,
         duration: data.legs[0].duration,
-        estimated: data.estimated || data.legs[0].estimated
+        estimated: data.estimated || data.legs[0].estimated,
+        estimated_delivery_time: estimatedDeliveryTime
       });
     } catch (error) {
       console.error("Error calculating route:", error);
@@ -372,6 +431,7 @@ function NewOrderContent() {
         ...prev,
         distance: "Could not calculate",
         time: "Could not calculate",
+        estimated_delivery_time: null,
       }));
       
       setRouteCalculationFailed(true);
@@ -422,6 +482,7 @@ function NewOrderContent() {
         distance: formData.distance || "",
         time: formData.time || "",
         change_amount: parseFloat(formData.change_amount) || null,
+        estimated_delivery_time: formData.estimated_delivery_time,
       };
       
       console.log("Order data being submitted:", orderData);
@@ -664,9 +725,32 @@ function NewOrderContent() {
                         onChange={handleInputChange}
                         className="dashboard-input mt-1"
                         placeholder="Enter estimated time"
+                        onBlur={(e) => {
+                          if (e.target.value) {
+                            // Calculate estimated delivery time when manually entered
+                            const estimatedDeliveryTime = calculateEstimatedDeliveryTime(e.target.value);
+                            setFormData(prev => ({
+                              ...prev,
+                              estimated_delivery_time: estimatedDeliveryTime
+                            }));
+                          }
+                        }}
                       />
                     </div>
                   </div>
+                  
+                  {formData.estimated_delivery_time && (
+                    <div className="mt-4 p-3 border border-blue-200 rounded-md bg-blue-50">
+                      <div className="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-medium text-sm">
+                          Calculated Delivery Time: {new Date(formData.estimated_delivery_time).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -705,6 +789,27 @@ function NewOrderContent() {
                       />
                     </div>
                   </div>
+                  
+                  {formData.estimated_delivery_time && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Estimated Delivery Time
+                      </label>
+                      <div className="dashboard-input mt-1 bg-blue-50 border-blue-200 p-3">
+                        <div className="flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>
+                            {new Date(formData.estimated_delivery_time).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-blue-700 mt-1">
+                          The order's estimated delivery time will be saved for future reference.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
