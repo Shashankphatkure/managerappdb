@@ -39,6 +39,7 @@ function MultiOrderContent() {
   const [optimizedRoutes, setOptimizedRoutes] = useState([]);
   const [isCalculatingRoutes, setIsCalculatingRoutes] = useState(false);
   const [returnOption, setReturnOption] = useState("none"); // Options: "none", "original", "nearest"
+  const [previewTimestamps, setPreviewTimestamps] = useState(null);
   const supabase = createClientComponentClient();
 
   useEffect(() => {
@@ -539,17 +540,109 @@ function MultiOrderContent() {
       return;
     }
 
+    // Disable multiple clicks
+    if (isCalculatingRoutes) {
+      console.log("Already calculating routes, please wait...");
+      return;
+    }
+
     try {
       setIsCalculatingRoutes(true);
+      
+      // Start by fetching driver's active orders for context
+      await fetchDriverActiveOrders(selectedDriver.id);
+      
       const optimizedRoutes = await calculateRoutes(
         selectedStore,
         selectedCustomers
       );
+      
+      if (!optimizedRoutes || optimizedRoutes.length === 0) {
+        throw new Error("Failed to calculate optimized routes");
+      }
+      
       setOptimizedRoutes(optimizedRoutes);
+      
+      // Preview timestamps for the first order
+      try {
+        const firstOrderTimestamp = await calculateFirstOrderCreatedAt(selectedDriver.id);
+        let currentTime = new Date(firstOrderTimestamp);
+        
+        // Calculate estimated timestamps
+        const timestampPreview = {
+          firstOrderTime: firstOrderTimestamp,
+          isInFuture: firstOrderTimestamp.getTime() > Date.now() + 60000, // More than a minute in the future
+          estimatedCompletionTime: null,
+          timestampSource: "current"
+        };
+        
+        // Check what is the source of the first timestamp
+        const lastOrder = await fetchLastDriverOrder(selectedDriver.id);
+        if (lastOrder) {
+          if (lastOrder.completiontime) {
+            timestampPreview.timestampSource = "completion";
+          } else if (lastOrder.estimated_delivery_time) {
+            timestampPreview.timestampSource = "estimated_delivery";
+          } else if (lastOrder.reached_time) {
+            timestampPreview.timestampSource = "reached_customer";
+          } else if (lastOrder.on_way_time) {
+            timestampPreview.timestampSource = "on_the_way";
+          } else if (lastOrder.accepted_time) {
+            timestampPreview.timestampSource = "accepted_order";
+          }
+        }
+        
+        // Calculate estimated completion time of the entire batch
+        let totalDurationMinutes = 0;
+        
+        // Add up durations of all routes including return
+        optimizedRoutes.forEach(route => {
+          const minutes = parseTimeToMinutes(route.duration);
+          // Safety check for invalid durations
+          if (minutes > 0 && minutes < 24 * 60) { // Ensure duration is positive and less than 24 hours
+            totalDurationMinutes += minutes;
+          } else {
+            console.warn(`Suspicious route duration: ${route.duration} parsed as ${minutes} minutes`);
+            // Use default of 30 minutes for suspicious durations
+            totalDurationMinutes += 30;
+          }
+        });
+        
+        // Add 30 seconds buffer between each order
+        const bufferMinutes = (optimizedRoutes.length - 1) * 0.5;
+        
+        // Calculate final completion time
+        const completionTime = new Date(firstOrderTimestamp);
+        completionTime.setMinutes(completionTime.getMinutes() + totalDurationMinutes + bufferMinutes);
+        timestampPreview.estimatedCompletionTime = completionTime;
+        
+        // Calculate total distance
+        let totalDistance = 0;
+        optimizedRoutes.forEach(route => {
+          // Try to parse numeric distance from string like "5.2 km"
+          try {
+            const distanceMatch = route.distance.match(/(\d+(?:\.\d+)?)/);
+            if (distanceMatch) {
+              totalDistance += parseFloat(distanceMatch[1]);
+            }
+          } catch (e) {
+            console.warn("Error parsing distance:", e);
+          }
+        });
+        timestampPreview.totalDistance = totalDistance.toFixed(1) + " km";
+        
+        // Save the preview
+        setPreviewTimestamps(timestampPreview);
+      } catch (error) {
+        console.error("Error calculating timestamp preview:", error);
+        // Still allow creating orders even if preview fails
+        setPreviewTimestamps(null);
+      }
+      
       setShowRouteConfirmation(true);
     } catch (error) {
       console.error("Error calculating routes:", error);
-      alert("Error calculating delivery routes. Please try again.");
+      alert(`Error calculating delivery routes. ${error.message}`);
     } finally {
       setIsCalculatingRoutes(false);
     }
@@ -623,20 +716,38 @@ function MultiOrderContent() {
       // Generate a unique batch ID
       const batchId = `batch_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       
+      // Calculate the appropriate starting timestamp for the first order
+      console.log("Calculating initial timestamp for first order...");
+      const firstOrderTimestamp = await calculateFirstOrderCreatedAt(selectedDriver.id);
+      console.log(`First order will start at: ${firstOrderTimestamp.toISOString()}`);
+      
       // Filter out the return to store leg for actual order creation
       const orderRoutes = optimizedRoutes.filter(route => !route.isReturnToStore);
       
-      // Create orders based on the current optimized routes order (which may have been reordered)
-      const orders = orderRoutes.map((route, index) => {
+      // Create orders sequentially to ensure proper timestamp ordering
+      const orders = [];
+      let currentTimestamp = new Date(firstOrderTimestamp);
+      
+      for (let index = 0; index < orderRoutes.length; index++) {
+        const route = orderRoutes[index];
+        
         // For the start location:
         // - If it's the first stop, use the store address
         // - Otherwise, use the destination of the previous stop
-        const start =
-          index === 0
-            ? selectedStore.address
-            : orderRoutes[index - 1].destination;
+        const start = index === 0 ? selectedStore.address : orderRoutes[index - 1].destination;
+        
+        // Parse this route's duration to minutes
+        const durationMinutes = parseTimeToMinutes(route.duration);
+        
+        // Calculate the estimated delivery time based on current timestamp
+        const estimatedDeliveryTime = calculateEstimatedDeliveryTime(route.duration, currentTimestamp);
+        
+        console.log(`Order ${index + 1} for ${route.customer.full_name}:`);
+        console.log(`  Created at: ${currentTimestamp.toISOString()}`);
+        console.log(`  Estimated delivery: ${estimatedDeliveryTime}`);
+        console.log(`  Duration: ${route.duration} (${durationMinutes} minutes)`);
 
-        return {
+        const order = {
           driverid: selectedDriver.id,
           drivername: selectedDriver.full_name,
           driveremail: selectedDriver.email,
@@ -654,9 +765,23 @@ function MultiOrderContent() {
           total_amount: 20.0,
           batch_id: batchId,
           store_name: selectedStore.name,
-          return_option: returnOption
+          return_option: returnOption,
+          created_at: currentTimestamp.toISOString(),
+          estimated_delivery_time: estimatedDeliveryTime
         };
-      });
+        
+        orders.push(order);
+        
+        // Update timestamp for next order (use estimated delivery + 30 seconds)
+        if (estimatedDeliveryTime) {
+          currentTimestamp = new Date(estimatedDeliveryTime);
+          currentTimestamp.setSeconds(currentTimestamp.getSeconds() + 30); // 30 second buffer
+        } else {
+          // If no estimated delivery time, add the duration to current timestamp
+          currentTimestamp = new Date(currentTimestamp);
+          currentTimestamp.setMinutes(currentTimestamp.getMinutes() + durationMinutes + 0.5); // Duration + 30 seconds
+        }
+      }
       
       // Add the return to store leg if enabled
       const returnRoute = optimizedRoutes.find(route => route.isReturnToStore);
@@ -668,6 +793,14 @@ function MultiOrderContent() {
         const isOriginalStore = returnRoute.isOriginalStore || false;
         const returnToStoreId = returnRoute.store?.id || selectedStore.id;
         const returnToStoreName = returnRoute.store?.name || selectedStore.name;
+        
+        // Calculate estimated delivery time for return
+        const returnEstimatedDelivery = calculateEstimatedDeliveryTime(returnRoute.duration, currentTimestamp);
+        
+        console.log(`Return to store order:`);
+        console.log(`  Created at: ${currentTimestamp.toISOString()}`);
+        console.log(`  Estimated delivery: ${returnEstimatedDelivery}`);
+        console.log(`  Duration: ${returnRoute.duration}`);
         
         // Create a return to store order
         const returnOrder = {
@@ -691,7 +824,9 @@ function MultiOrderContent() {
           is_return_to_store: true,
           is_nearest_store: isNearestStore,
           is_original_store: isOriginalStore,
-          return_option: returnOption
+          return_option: returnOption,
+          created_at: currentTimestamp.toISOString(),
+          estimated_delivery_time: returnEstimatedDelivery
         };
         
         orders.push(returnOrder);
@@ -751,6 +886,294 @@ function MultiOrderContent() {
       setDriverActiveOrders(data || []);
     } catch (error) {
       console.error("Error fetching driver orders:", error);
+    }
+  }
+
+  // Helper function to parse time string (e.g. "30 mins") to minutes
+  function parseTimeToMinutes(timeString) {
+    if (!timeString || typeof timeString !== 'string') {
+      console.warn(`Invalid time string provided: ${timeString}`);
+      return 30; // Default to 30 minutes as fallback
+    }
+    
+    // Normalize string: remove extra spaces, convert to lowercase
+    const normalizedString = timeString.trim().toLowerCase();
+    
+    // Handle special case where the string might just be a number
+    if (/^\d+$/.test(normalizedString)) {
+      const value = parseInt(normalizedString, 10);
+      console.log(`Parsed numeric-only time string as ${value} minutes`);
+      return value;
+    }
+    
+    // Try to extract numerical value and time unit with various patterns
+    const patterns = [
+      /(\d+(?:\.\d+)?)\s*(?:minute|min|m)s?/,       // For "30 minutes", "30 mins", "30 min", "30m"
+      /(\d+(?:\.\d+)?)\s*(?:hour|hr|h)s?/,          // For "2 hours", "2 hrs", "2 hr", "2h"
+      /(\d+(?:\.\d+)?)\s*(?:day|d)s?/,              // For "1 day", "1 days", "1d"
+      /(\d+(?:\.\d+)?)\s*(?:second|sec|s)s?/,       // For "90 seconds", "90 secs", "90s"
+      /(\d+)(?:\s*)(\w+)/                          // Generic fallback pattern
+    ];
+    
+    for (const pattern of patterns) {
+      const match = normalizedString.match(pattern);
+      if (match) {
+        const value = parseFloat(match[1]);
+        
+        // For the generic pattern, we need to determine the unit from match[2]
+        if (pattern === patterns[patterns.length - 1]) {
+          const unit = match[2];
+          
+          if (unit.includes('min')) return value;
+          if (unit.includes('hour') || unit.includes('hr') || unit === 'h') return value * 60;
+          if (unit.includes('day') || unit === 'd') return value * 24 * 60;
+          if (unit.includes('sec') || unit === 's') return Math.ceil(value / 60);
+          
+          // If unit is unknown, assume minutes
+          console.warn(`Unknown time unit in "${timeString}", assuming minutes`);
+          return value;
+        }
+        
+        // For specific patterns
+        if (pattern === patterns[0]) return value;                   // minutes
+        if (pattern === patterns[1]) return value * 60;              // hours
+        if (pattern === patterns[2]) return value * 24 * 60;         // days
+        if (pattern === patterns[3]) return Math.ceil(value / 60);   // seconds
+      }
+    }
+    
+    // Handle "HH:MM" format (e.g. "1:30" for 1 hour 30 minutes)
+    const timeFormat = normalizedString.match(/(\d+):(\d+)/);
+    if (timeFormat) {
+      const hours = parseInt(timeFormat[1], 10);
+      const minutes = parseInt(timeFormat[2], 10);
+      return (hours * 60) + minutes;
+    }
+    
+    // If all attempts fail, use a reasonable default and log warning
+    console.warn(`Could not parse time string: "${timeString}", using default value of 30 minutes`);
+    return 30; // Default to 30 minutes
+  }
+
+  // Calculates an estimated delivery timestamp based on start time and duration
+  function calculateEstimatedDeliveryTime(timeString, baseTime = null) {
+    // If no time provided, don't calculate
+    if (!timeString || timeString === "Could not calculate") {
+      return null;
+    }
+
+    try {
+      // Parse the time string to minutes
+      const minutesToAdd = parseTimeToMinutes(timeString);
+      
+      // Safety check for extremely long or negative durations
+      if (minutesToAdd <= 0) {
+        console.warn(`Invalid duration calculated: ${minutesToAdd} minutes from "${timeString}"`);
+        return null;
+      }
+      
+      if (minutesToAdd > 24 * 60) { // More than 24 hours
+        console.warn(`Extremely long duration: ${minutesToAdd} minutes from "${timeString}"`);
+        // Cap at 24 hours for safety
+        const cappedMinutes = 24 * 60;
+        console.log(`Capping duration to ${cappedMinutes} minutes`);
+      }
+      
+      // Validate base time or use current time
+      let base;
+      if (baseTime) {
+        // Ensure baseTime is a valid date
+        if (baseTime instanceof Date) {
+          base = baseTime;
+        } else if (typeof baseTime === 'string') {
+          try {
+            base = new Date(baseTime);
+            // Check if valid date
+            if (isNaN(base.getTime())) {
+              console.warn(`Invalid base time string provided: "${baseTime}", using current time`);
+              base = new Date();
+            }
+          } catch (error) {
+            console.warn(`Error parsing base time: ${error.message}, using current time`);
+            base = new Date();
+          }
+        } else {
+          console.warn(`Unsupported base time format: ${typeof baseTime}, using current time`);
+          base = new Date();
+        }
+      } else {
+        base = new Date();
+      }
+      
+      // Create a timestamp for baseTime + estimated delivery time
+      const estimatedDeliveryTime = new Date(base);
+      estimatedDeliveryTime.setMinutes(estimatedDeliveryTime.getMinutes() + Math.min(minutesToAdd, 24 * 60));
+      
+      console.log(`Calculated estimated delivery time: ${estimatedDeliveryTime.toISOString()} (based on ${base.toISOString()})`);
+      return estimatedDeliveryTime.toISOString();
+    } catch (error) {
+      console.error("Error calculating delivery timestamp:", error);
+      return null;
+    }
+  }
+
+  // Fetch the driver's most recent order
+  async function fetchLastDriverOrder(driverId) {
+    if (!driverId) return null;
+    
+    console.log(`Fetching last order for driver: ${driverId}`);
+    
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("driverid", driverId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+        
+      if (error) {
+        console.error("Error fetching driver's last order:", error);
+        return null;
+      }
+      
+      if (data && data.length > 0) {
+        console.log("Found driver's last order:", data[0]);
+        return data[0];
+      } else {
+        console.log("No previous orders found for this driver");
+        return null;
+      }
+    } catch (error) {
+      console.error("Exception fetching driver's last order:", error);
+      return null;
+    }
+  }
+  
+  // Calculate appropriate created_at timestamp for first order in a sequence
+  async function calculateFirstOrderCreatedAt(driverId) {
+    if (!driverId) {
+      console.log("No driver selected, using current timestamp");
+      return new Date();
+    }
+    
+    try {
+      // Get driver's last order
+      const lastOrder = await fetchLastDriverOrder(driverId);
+      
+      if (!lastOrder) {
+        console.log("No previous orders for driver, using current timestamp");
+        return new Date();
+      }
+      
+      let calculatedTime = null;
+      const now = new Date();
+      
+      // Case 1: If last order has a completion time, use that as the base
+      if (lastOrder.completiontime) {
+        try {
+          console.log("Using last order completion time as base:", lastOrder.completiontime);
+          
+          // Check if completiontime is a timestamp or a string
+          if (typeof lastOrder.completiontime === 'string') {
+            // Try to parse as ISO date
+            if (lastOrder.completiontime.includes('Z') || lastOrder.completiontime.includes('T')) {
+              calculatedTime = new Date(lastOrder.completiontime);
+              
+              // Validate the parsed date
+              if (isNaN(calculatedTime.getTime())) {
+                console.warn("Invalid ISO date format in completion time, using current timestamp");
+                calculatedTime = now;
+              } else {
+                console.log(`Parsed completion time: ${calculatedTime.toISOString()}`);
+              }
+            } else {
+              // Handle case where completiontime might be a text description, not a timestamp
+              console.log("Last order has text completion time, using current timestamp");
+              calculatedTime = now;
+            }
+          } else if (lastOrder.completiontime instanceof Date) {
+            calculatedTime = lastOrder.completiontime;
+          } else {
+            console.log("Unrecognized completiontime format, using current timestamp");
+            calculatedTime = now;
+          }
+        } catch (error) {
+          console.error("Error parsing completion time:", error);
+          calculatedTime = now;
+        }
+      }
+      
+      // Case 2: If we couldn't use completiontime but have estimated_delivery_time, use that
+      if (!calculatedTime && lastOrder.estimated_delivery_time) {
+        try {
+          console.log("Using last order's estimated delivery time as base:", lastOrder.estimated_delivery_time);
+          calculatedTime = new Date(lastOrder.estimated_delivery_time);
+          
+          // Validate the parsed date
+          if (isNaN(calculatedTime.getTime())) {
+            console.warn("Invalid ISO date format in estimated_delivery_time, using current timestamp");
+            calculatedTime = now;
+          }
+        } catch (error) {
+          console.error("Error parsing estimated delivery time:", error);
+          calculatedTime = now;
+        }
+      }
+      
+      // Case 3: Check if the order has reached_time (when driver reached customer)
+      if (!calculatedTime && lastOrder.reached_time) {
+        try {
+          console.log("Using last order's reached_time as base:", lastOrder.reached_time);
+          calculatedTime = new Date(lastOrder.reached_time);
+          
+          // Add an estimated delivery duration (10 minutes)
+          calculatedTime.setMinutes(calculatedTime.getMinutes() + 10);
+          
+          // Validate the parsed date
+          if (isNaN(calculatedTime.getTime())) {
+            console.warn("Invalid ISO date format in reached_time, using current timestamp");
+            calculatedTime = now;
+          }
+        } catch (error) {
+          console.error("Error parsing reached time:", error);
+          calculatedTime = now;
+        }
+      }
+      
+      // Case 4: Default to current time if we couldn't determine a time
+      if (!calculatedTime) {
+        console.log("No relevant timestamps found in last order, using current timestamp");
+        calculatedTime = now;
+      }
+      
+      // Make sure the calculated time is not too far in the past
+      // If it is > 5 minutes in the past, use current time instead
+      if (calculatedTime < new Date(now.getTime() - 5 * 60 * 1000)) {
+        console.log("Calculated time is more than 5 minutes in the past, using current time instead");
+        console.log(`Past time: ${calculatedTime.toISOString()}, Current time: ${now.toISOString()}`);
+        return now;
+      }
+      
+      // Make sure the calculated time is not too far in the future (max 3 days)
+      // This helps prevent errors from invalid timestamps
+      const maxFutureDate = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days ahead
+      if (calculatedTime > maxFutureDate) {
+        console.warn(`Calculated time is more than 3 days in the future, capping to 3 days ahead`);
+        console.log(`Future time: ${calculatedTime.toISOString()}, Max allowed: ${maxFutureDate.toISOString()}`);
+        calculatedTime = maxFutureDate;
+      }
+      
+      // Add a small buffer (10 seconds) if we're using a time from another order
+      // This ensures consecutive orders for the same driver are properly sequenced
+      if (calculatedTime.getTime() !== now.getTime()) {
+        calculatedTime = new Date(calculatedTime.getTime() + 10 * 1000);
+        console.log(`Added 10-second buffer to calculated time: ${calculatedTime.toISOString()}`);
+      }
+      
+      return calculatedTime;
+    } catch (error) {
+      console.error("Error in calculateFirstOrderCreatedAt:", error);
+      return new Date(); // Fallback to current time
     }
   }
 
@@ -1532,6 +1955,82 @@ function MultiOrderContent() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Timestamp Preview Section in Confirmation Dialog */}
+                {previewTimestamps ? (
+                  <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h3 className="font-medium text-blue-800">Timing Information</h3>
+                    </div>
+                    
+                    {previewTimestamps.isInFuture && (
+                      <div className="mb-3 p-2 bg-yellow-100 border border-yellow-200 rounded text-sm">
+                        <p className="font-medium text-yellow-800">
+                          Orders will be scheduled with a future start time
+                        </p>
+                        <p className="text-xs mt-1 text-yellow-700">
+                          Based on {previewTimestamps.timestampSource === "completion" ? 
+                            "the completion time of the driver's last order" : 
+                            previewTimestamps.timestampSource === "estimated_delivery" ? 
+                            "the estimated delivery time of the driver's last order" :
+                            previewTimestamps.timestampSource === "reached_customer" ?
+                            "when the driver reached their last customer" :
+                            previewTimestamps.timestampSource === "on_the_way" ?
+                            "when the driver started their last delivery" :
+                            previewTimestamps.timestampSource === "accepted_order" ?
+                            "when the driver accepted their last order" :
+                            "the driver's schedule"}
+                        </p>
+                      </div>
+                    )}
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-blue-700">First Order Time:</p>
+                        <p className="font-medium text-sm">
+                          {previewTimestamps.firstOrderTime.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date().getTime() > previewTimestamps.firstOrderTime.getTime() ? 
+                            "(Uses current time)" : 
+                            `(${Math.round((previewTimestamps.firstOrderTime.getTime() - new Date().getTime()) / 60000)} mins from now)`}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-blue-700">Estimated Completion:</p>
+                        <p className="font-medium text-sm">
+                          {previewTimestamps.estimatedCompletionTime.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          (Total: {Math.round((previewTimestamps.estimatedCompletionTime.getTime() - previewTimestamps.firstOrderTime.getTime()) / 60000)} mins)
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {selectedDriver && driverActiveOrders.length > 0 && (
+                      <div className="mt-3 pt-2 border-t border-blue-200 text-xs text-blue-600">
+                        <span className="font-medium">{selectedDriver.full_name}</span> currently has {driverActiveOrders.length} active order{driverActiveOrders.length > 1 ? 's' : ''}.
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-yellow-50 rounded-lg p-4 mb-4 border border-yellow-200">
+                    <div className="flex items-start">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-yellow-800">Timing Information Unavailable</p>
+                        <p className="text-sm text-yellow-700 mt-1">
+                          Orders will be created with the current time. Precise timing could not be calculated.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 {optimizedRoutes.map((route, index) => (
                   <div
