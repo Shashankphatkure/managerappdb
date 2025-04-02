@@ -181,7 +181,7 @@ export default function DriversTrackingPage() {
         : `${inactiveDrivers.length} drivers (${driverNames}) have been inactive for more than 10 minutes`;
       
       toast.warning(message, {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 5000,
         hideProgressBar: false,
         closeOnClick: true,
