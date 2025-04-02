@@ -112,6 +112,7 @@ export default function ClientLayout({ children }) {
     
     { path: "/dashboard/orders", label: "Orders", icon: ShoppingBagIcon },
     { path: "/dashboard/orders/drivers", label: "Track Driver", icon: MapPinIcon },
+    { path: "/dashboard/orders/performance", label: "Driver Performance", icon: ChartBarIcon },
     { path: "/dashboard/batches", label: "Batches", icon: DocumentDuplicateIcon },
     { path: "/dashboard/drivers", label: "Drivers", icon: TruckIcon },
     { path: "/dashboard/payments", label: "Payments", icon: BanknotesIcon },
