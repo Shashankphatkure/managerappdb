@@ -15,6 +15,8 @@ import {
   PhoneIcon,
   CurrencyDollarIcon,
   ArrowLeftIcon,
+  PencilSquareIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 
@@ -26,6 +28,22 @@ export default function ViewOrderPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [proofImage, setProofImage] = useState(null);
   const [cancelProofImage, setCancelProofImage] = useState(null);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [newStatus, setNewStatus] = useState("");
+  const [managerRemark, setManagerRemark] = useState("");
+  
+  // Status options for dropdown
+  const statusOptions = [
+    { value: "pending", label: "Pending" },
+    { value: "confirmed", label: "Confirmed" },
+    { value: "accepted", label: "Accepted" },
+    { value: "picked_up", label: "Picked Up" },
+    { value: "on_way", label: "On The Way" },
+    { value: "reached", label: "Reached" },
+    { value: "delivered", label: "Delivered" },
+    { value: "cancelled", label: "Cancelled" },
+  ];
   
   // Helper function to format snake_case text to readable text
   const formatRemarkText = (text) => {
@@ -71,6 +89,11 @@ export default function ViewOrderPage({ params }) {
 
       if (error) throw error;
       setOrder(data);
+      
+      // Set the new status to current status for the form
+      if (data && data.status) {
+        setNewStatus(data.status);
+      }
 
       if (data.photo_proof) {
         const { data: imageUrl, error: imageError } = supabase.storage
@@ -103,12 +126,70 @@ export default function ViewOrderPage({ params }) {
     }
   }
 
+  // New function to handle status update
+  async function updateOrderStatus() {
+    setUpdatingStatus(true);
+    try {
+      // Prepare status update data
+      const updateData = {
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+        managerremark: managerRemark,
+        updatedbymanager: true, // Set to true when manager updates status
+      };
+      
+      // If status is cancelled and previous status wasn't cancelled, set cancel_time
+      if (newStatus === 'cancelled' && order.status !== 'cancelled') {
+        updateData.cancel_time = new Date().toISOString();
+        
+        // If no cancel reason is specified, add a default one
+        if (!order.cancel_reason) {
+          updateData.cancel_reason = 'cancelled_by_manager';
+        }
+      }
+      
+      // If status is delivered and previous status wasn't delivered, set completiontime
+      if (newStatus === 'delivered' && order.status !== 'delivered') {
+        updateData.completiontime = new Date().toISOString();
+      }
+      
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      // Update local order state
+      setOrder({
+        ...order,
+        ...updateData
+      });
+      
+      // Close modal and reset form
+      setShowStatusModal(false);
+      setManagerRemark("");
+      
+      // Refresh order data
+      fetchOrder();
+      
+      alert("Order status updated successfully!");
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      alert("Error updating order status");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  }
+
   const getStatusColor = (status) => {
     const colors = {
       pending: "bg-yellow-100 text-yellow-800",
       confirmed: "bg-blue-100 text-blue-800",
       preparing: "bg-purple-100 text-purple-800",
       picked_up: "bg-indigo-100 text-indigo-800",
+      on_way: "bg-purple-100 text-purple-800",
+      reached: "bg-blue-100 text-blue-800",
       delivered: "bg-green-100 text-green-800",
       cancelled: "bg-red-100 text-red-800",
     };
@@ -177,9 +258,21 @@ export default function ViewOrderPage({ params }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-500">Status</p>
-              <span className={`status-badge ${getStatusColor(order.status)}`}>
-                {order.status}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`status-badge ${getStatusColor(order.status)}`}>
+                  {order.status}
+                </span>
+                <button 
+                  onClick={() => setShowStatusModal(true)}
+                  className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-full"
+                  title="Update status"
+                >
+                  <PencilSquareIcon className="h-4 w-4" />
+                </button>
+              </div>
+              {order.updatedbymanager && (
+                <p className="text-xs text-gray-500 mt-1">Updated by manager</p>
+              )}
             </div>
             <div>
               <p className="text-sm text-gray-500">Payment Status</p>
@@ -204,6 +297,14 @@ export default function ViewOrderPage({ params }) {
               </p>
             </div>
           </div>
+          {order.managerremark && (
+            <div>
+              <p className="text-sm text-gray-500">Manager Remarks</p>
+              <p className="text-sm bg-gray-50 p-2 rounded border border-gray-200">
+                {order.managerremark}
+              </p>
+            </div>
+          )}
         </div>
       ),
     },
@@ -366,6 +467,13 @@ export default function ViewOrderPage({ params }) {
       title={`Order #${id}`}
       actions={
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowStatusModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <PencilSquareIcon className="w-5 h-5 mr-2" />
+            Update Status
+          </button>
           {order.status === "pending" && !order.driverid && (
             <Link
               href={`/dashboard/orders/${id}/assign`}
@@ -405,6 +513,75 @@ export default function ViewOrderPage({ params }) {
           ))}
         </div>
       </div>
+      
+      {/* Status Update Modal */}
+      {showStatusModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">Update Order Status</h3>
+              <button 
+                onClick={() => setShowStatusModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    id="status"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value)}
+                  >
+                    {statusOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label htmlFor="managerRemark" className="block text-sm font-medium text-gray-700 mb-1">
+                    Remarks (Optional)
+                  </label>
+                  <textarea
+                    id="managerRemark"
+                    rows={3}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    placeholder="Add any notes or comments about this status change"
+                    value={managerRemark}
+                    onChange={(e) => setManagerRemark(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+              <button
+                type="button"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                onClick={() => setShowStatusModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                onClick={updateOrderStatus}
+                disabled={updatingStatus}
+              >
+                {updatingStatus ? "Updating..." : "Update Status"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
