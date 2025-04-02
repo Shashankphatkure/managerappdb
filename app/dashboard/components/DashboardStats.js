@@ -11,6 +11,7 @@ import {
   CurrencyDollarIcon,
   ShoppingBagIcon,
   UserMinusIcon,
+  NoSymbolIcon,
 } from "@heroicons/react/24/outline";
 
 export default function DashboardStats() {
@@ -114,8 +115,8 @@ export default function DashboardStats() {
     {
       title: "INACTIVE DRIVERS",
       value: stats.inactiveDrivers,
-      icon: UserMinusIcon,
-      color: "emerald",
+      icon: NoSymbolIcon,
+      color: "red",
       onClick: () => handleNavigation("/dashboard/drivers?status=inactive"),
     },
     {
@@ -163,7 +164,7 @@ export default function DashboardStats() {
                 {card.value}
               </p>
             </div>
-            <div className={`p-3 rounded-lg bg-${card.color}-50`}>
+            <div className={`dashboard-card-icon dashboard-card-icon-${card.color}`}>
               <card.icon className={`w-6 h-6 text-${card.color}-600`} />
             </div>
           </div>
