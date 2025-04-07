@@ -10,6 +10,12 @@ import {
   CurrencyDollarIcon,
   DocumentTextIcon,
   BuildingStorefrontIcon,
+  PlusIcon,
+  XMarkIcon,
+  TrashIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 
 // Component that uses useSearchParams
@@ -35,6 +41,8 @@ function NewOrderContent() {
   const [calculatedCreatedAt, setCalculatedCreatedAt] = useState(null);
   const [isCheckingDriverOrders, setIsCheckingDriverOrders] = useState(false);
   const [returnOption, setReturnOption] = useState("none");
+  const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
+  const [creatingCustomer, setCreatingCustomer] = useState(false);
 
   const [formData, setFormData] = useState({
     customerid: "",
@@ -914,6 +922,23 @@ function NewOrderContent() {
     }
   }
 
+  // Function to refresh the customers list after creating a new one
+  async function refreshCustomers() {
+    try {
+      console.log("Refreshing customers from database...");
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, full_name, phone, homeaddress, workaddress, addresses")
+        .order("full_name");
+
+      if (error) throw error;
+      console.log(`Refreshed customers - loaded ${data?.length || 0} records`);
+      setCustomers(data || []);
+    } catch (error) {
+      console.error("Error refreshing customers:", error);
+    }
+  }
+
   return (
     <DashboardLayout
       title="Create New Order"
@@ -941,9 +966,19 @@ function NewOrderContent() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Search Customer *
-                  </label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Search Customer *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewCustomerModal(true)}
+                      className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                    >
+                      <PlusIcon className="w-4 h-4" />
+                      Add New Customer
+                    </button>
+                  </div>
                   <div className="relative">
                     <input
                       type="text"
@@ -1454,7 +1489,405 @@ function NewOrderContent() {
           </form>
         </div>
       </div>
+
+      {/* New Customer Modal */}
+      {showNewCustomerModal && (
+        <NewCustomerModal 
+          isOpen={showNewCustomerModal}
+          onClose={() => setShowNewCustomerModal(false)}
+          onCustomerCreated={(newCustomer) => {
+            refreshCustomers();
+            selectCustomer(newCustomer);
+            setShowNewCustomerModal(false);
+          }}
+        />
+      )}
     </DashboardLayout>
+  );
+}
+
+// New Customer Modal Component
+function NewCustomerModal({ isOpen, onClose, onCustomerCreated }) {
+  const supabase = createClientComponentClient();
+  const [loading, setLoading] = useState(false);
+  const [customer, setCustomer] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    addresses: [{ label: "Home", address: "" }],
+    city: "",
+    status: "active",
+    ordernote: "",
+    subscriptiondays: "",
+    subscriptionstart: "",
+    floor: "",
+    room_number: "",
+    wing: "",
+  });
+
+  const addAddress = () => {
+    if (customer.addresses.length < 5) {
+      setCustomer({
+        ...customer,
+        addresses: [...customer.addresses, { label: "", address: "" }]
+      });
+    }
+  };
+
+  const removeAddress = (index) => {
+    if (customer.addresses.length > 1) {
+      const newAddresses = [...customer.addresses];
+      newAddresses.splice(index, 1);
+      setCustomer({
+        ...customer,
+        addresses: newAddresses
+      });
+    }
+  };
+
+  const updateAddressField = (index, field, value) => {
+    const newAddresses = [...customer.addresses];
+    newAddresses[index] = {
+      ...newAddresses[index],
+      [field]: value
+    };
+    setCustomer({
+      ...customer,
+      addresses: newAddresses
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Validate required fields
+      if (!customer.full_name.trim()) {
+        alert("Customer name is required");
+        setLoading(false);
+        return;
+      }
+
+      // Validate at least one address is provided
+      if (!customer.addresses.some(addr => addr.address.trim())) {
+        alert("At least one address is required");
+        setLoading(false);
+        return;
+      }
+
+      // Clean customer data for submission
+      const cleanedCustomer = {
+        ...customer,
+        subscriptiondays:
+          customer.subscriptiondays === ""
+            ? null
+            : parseInt(customer.subscriptiondays),
+        subscriptionstart:
+          customer.subscriptionstart === "" ? null : customer.subscriptionstart,
+      };
+
+      // Insert new customer
+      const { data, error } = await supabase
+        .from("customers")
+        .insert([cleanedCustomer])
+        .select();
+
+      if (error) throw error;
+      console.log("New customer created:", data[0]);
+      
+      // Call the onCustomerCreated callback with the new customer data
+      if (data && data.length > 0) {
+        onCustomerCreated(data[0]);
+      }
+    } catch (error) {
+      console.error("Error creating customer:", error);
+      alert("Error creating customer. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+          <h2 className="text-xl font-semibold text-gray-900">Add New Customer</h2>
+          <button 
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-500"
+          >
+            <XMarkIcon className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Personal Information */}
+            <div className="space-y-6">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                Personal Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Full Name */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={customer.full_name}
+                    onChange={(e) => setCustomer({ ...customer, full_name: e.target.value })}
+                    className="dashboard-input"
+                    placeholder="Customer name"
+                    required
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={customer.email}
+                    onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
+                    className="dashboard-input"
+                    placeholder="Email address"
+                  />
+                </div>
+
+                {/* Phone */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={customer.phone}
+                    onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
+                    className="dashboard-input"
+                    placeholder="Phone number"
+                  />
+                </div>
+
+                {/* Status */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Status
+                  </label>
+                  <select
+                    value={customer.status}
+                    onChange={(e) => setCustomer({ ...customer, status: e.target.value })}
+                    className="dashboard-input"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Address Information */}
+            <div className="space-y-6 pt-6 border-t border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                  Address Information ({customer.addresses.length}/5)
+                </h3>
+                {customer.addresses.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={addAddress}
+                    className="text-sm text-blue-600 flex items-center gap-1 hover:text-blue-800 transition-colors"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    Add Address
+                  </button>
+                )}
+              </div>
+              
+              <div className="space-y-4">
+                {customer.addresses.map((addressItem, index) => (
+                  <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">Address #{index + 1}</h4>
+                      {customer.addresses.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeAddress(index)}
+                          className="text-red-600 flex items-center text-sm hover:text-red-800 transition-colors"
+                        >
+                          <TrashIcon className="w-4 h-4 mr-1" />
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="md:col-span-1">
+                        <label className="text-sm font-semibold text-gray-700">
+                          Label
+                        </label>
+                        <input
+                          type="text"
+                          value={addressItem.label}
+                          onChange={(e) => updateAddressField(index, 'label', e.target.value)}
+                          placeholder="e.g. Home, Work, etc."
+                          className="dashboard-input mt-1"
+                        />
+                      </div>
+                      <div className="md:col-span-3">
+                        <label className="text-sm font-semibold text-gray-700">
+                          Address {index === 0 && <span className="text-red-500">*</span>}
+                        </label>
+                        <textarea
+                          value={addressItem.address}
+                          onChange={(e) => updateAddressField(index, 'address', e.target.value)}
+                          className="dashboard-input mt-1"
+                          rows={2}
+                          required={index === 0}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* City */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    value={customer.city}
+                    onChange={(e) => setCustomer({ ...customer, city: e.target.value })}
+                    className="dashboard-input"
+                    placeholder="City"
+                  />
+                </div>
+
+                {/* Floor */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Floor
+                  </label>
+                  <input
+                    type="text"
+                    value={customer.floor}
+                    onChange={(e) => setCustomer({ ...customer, floor: e.target.value })}
+                    className="dashboard-input"
+                    placeholder="Floor"
+                  />
+                </div>
+
+                {/* Room Number */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Room Number
+                  </label>
+                  <input
+                    type="text"
+                    value={customer.room_number}
+                    onChange={(e) => setCustomer({ ...customer, room_number: e.target.value })}
+                    className="dashboard-input"
+                    placeholder="Room Number"
+                  />
+                </div>
+
+                {/* Wing */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Wing
+                  </label>
+                  <input
+                    type="text"
+                    value={customer.wing}
+                    onChange={(e) => setCustomer({ ...customer, wing: e.target.value })}
+                    className="dashboard-input"
+                    placeholder="Wing"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Information */}
+            <div className="space-y-6 pt-6 border-t border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                Additional Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Order Notes */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Order Notes
+                  </label>
+                  <textarea
+                    value={customer.ordernote}
+                    onChange={(e) => setCustomer({ ...customer, ordernote: e.target.value })}
+                    className="dashboard-input"
+                    rows={3}
+                    placeholder="Add any notes about this customer's orders"
+                  />
+                </div>
+
+                <div className="space-y-6">
+                  {/* Subscription Days */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Subscription Days
+                    </label>
+                    <input
+                      type="number"
+                      value={customer.subscriptiondays}
+                      onChange={(e) => setCustomer({ ...customer, subscriptiondays: e.target.value })}
+                      className="dashboard-input"
+                      placeholder="Number of days"
+                    />
+                  </div>
+
+                  {/* Subscription Start */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Subscription Start
+                    </label>
+                    <input
+                      type="date"
+                      value={customer.subscriptionstart}
+                      onChange={(e) => setCustomer({ ...customer, subscriptionstart: e.target.value })}
+                      className="dashboard-input"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer with actions */}
+            <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center gap-2"
+              >
+                {loading ? "Creating..." : "Create Customer"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }
 
