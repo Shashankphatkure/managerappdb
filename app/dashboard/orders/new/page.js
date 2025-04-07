@@ -34,6 +34,7 @@ function NewOrderContent() {
   const [routeCalculationFailed, setRouteCalculationFailed] = useState(false);
   const [calculatedCreatedAt, setCalculatedCreatedAt] = useState(null);
   const [isCheckingDriverOrders, setIsCheckingDriverOrders] = useState(false);
+  const [returnOption, setReturnOption] = useState("none");
 
   const [formData, setFormData] = useState({
     customerid: "",
@@ -52,6 +53,7 @@ function NewOrderContent() {
     change_amount: "",
     estimated: false,
     estimated_delivery_time: null, // Add new field for estimated delivery timestamp
+    return_option: "none",
   });
 
   useEffect(() => {
@@ -637,6 +639,8 @@ function NewOrderContent() {
         distance: formData.distance || "",
         time: formData.time || "",
         change_amount: parseFloat(formData.change_amount) || null,
+        return_option: returnOption,
+        delivery_sequence: 1,  // Main order is 1
       };
       
       // Add created_at only if we calculated a custom timestamp
@@ -655,17 +659,251 @@ function NewOrderContent() {
         orderData.estimated_delivery_time = formData.estimated_delivery_time;
       }
       
+      // Generate a batch ID to connect this order with the return order (if needed)
+      const batchId = `batch_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      orderData.batch_id = batchId;
+      
       console.log("Order data being submitted:", orderData);
 
+      // Array to hold all orders to be created (main order and potentially return order)
+      const orders = [orderData];
+      
+      // Create return order if returnOption is not "none" and we have a driver assigned
+      if (returnOption !== "none" && formData.driverid) {
+        let returnToStoreId = store.id;
+        let returnToStoreName = store.name;
+        let returnDistance = "";
+        let returnDuration = "";
+        let returnDestination = store.address;
+        let isNearestStore = false;
+        let isOriginalStore = true;
+        
+        // Calculate the return leg details
+        try {
+          console.log("Calculating return route");
+          
+          // For "original" option, calculate route back to original store
+          if (returnOption === "original") {
+            const returnResponse = await fetch("/api/calculate-routes", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                origins: [formData.destination],
+                destinations: [store.address],
+              }),
+            });
+            
+            const returnData = await returnResponse.json();
+            if (returnData.success && returnData.legs && returnData.legs.length > 0) {
+              returnDistance = returnData.legs[0].distance;
+              returnDuration = returnData.legs[0].duration;
+              isOriginalStore = true;
+              isNearestStore = false;
+            }
+          }
+          // For "nearest" option, find and calculate route to the nearest store
+          else if (returnOption === "nearest") {
+            console.log("Finding nearest store to delivery location:", formData.destination);
+            
+            // Get all active stores
+            const activeStores = stores.filter(s => s.is_active !== false);
+            
+            if (activeStores.length === 0) {
+              console.log("No active stores found, using original store as fallback");
+              
+              // Fallback to original store
+              const returnResponse = await fetch("/api/calculate-routes", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  origins: [formData.destination],
+                  destinations: [store.address],
+                }),
+              });
+              
+              const returnData = await returnResponse.json();
+              if (returnData.success && returnData.legs && returnData.legs.length > 0) {
+                returnDistance = returnData.legs[0].distance;
+                returnDuration = returnData.legs[0].duration;
+                isOriginalStore = true;
+                isNearestStore = true; // Technically it's the nearest because it's the only one
+              }
+            } else {
+              // Calculate distance to each store to find the nearest
+              const storeDistances = [];
+              
+              // Process each store one by one
+              for (let i = 0; i < activeStores.length; i++) {
+                const currentStore = activeStores[i];
+                console.log(`Calculating distance to store ${i+1}/${activeStores.length}: ${currentStore.name}`);
+                
+                const storeResponse = await fetch("/api/calculate-routes", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    origins: [formData.destination],
+                    destinations: [currentStore.address],
+                  }),
+                });
+                
+                const storeData = await storeResponse.json();
+                
+                if (storeData.success && storeData.legs && storeData.legs.length > 0) {
+                  let distanceValue = 999999999;
+                  
+                  // Try to extract numeric distance value
+                  if (storeData.legs[0].distanceValue && !isNaN(storeData.legs[0].distanceValue)) {
+                    distanceValue = storeData.legs[0].distanceValue;
+                  } else {
+                    // Extract from text as fallback
+                    const distanceText = storeData.legs[0].distance;
+                    const distanceMatch = distanceText.match(/(\d+\.?\d*)/);
+                    if (distanceMatch) {
+                      distanceValue = parseFloat(distanceMatch[1]);
+                    }
+                  }
+                  
+                  storeDistances.push({
+                    store: currentStore,
+                    distanceText: storeData.legs[0].distance,
+                    distanceValue: distanceValue,
+                    durationText: storeData.legs[0].duration,
+                  });
+                }
+              }
+              
+              // Find the store with the shortest distance
+              if (storeDistances.length > 0) {
+                // Sort by distance (ascending)
+                storeDistances.sort((a, b) => a.distanceValue - b.distanceValue);
+                
+                // Get the nearest store
+                const nearestStoreData = storeDistances[0];
+                const nearestStore = nearestStoreData.store;
+                isOriginalStore = nearestStore.id === store.id;
+                isNearestStore = true;
+                
+                returnDistance = nearestStoreData.distanceText;
+                returnDuration = nearestStoreData.durationText;
+                returnToStoreId = nearestStore.id;
+                returnToStoreName = nearestStore.name;
+                returnDestination = nearestStore.address;
+                
+                console.log(`Selected nearest store: ${nearestStore.name} (${nearestStoreData.distanceText}), is original store: ${isOriginalStore}`);
+              }
+            }
+          }
+          
+          // If we have driver and return data, create the return order
+          if (formData.driverid && returnDistance && returnDuration) {
+            // Set timestamp for return order based on delivery time of main order
+            let returnTimestamp;
+            
+            if (orderData.estimated_delivery_time) {
+              returnTimestamp = new Date(orderData.estimated_delivery_time);
+            } else if (createdAt && formData.time) {
+              // If we have time but no estimated_delivery_time, calculate it
+              const mainOrderDurationMinutes = parseTimeToMinutes(formData.time);
+              returnTimestamp = new Date(createdAt);
+              returnTimestamp.setMinutes(returnTimestamp.getMinutes() + mainOrderDurationMinutes);
+            } else {
+              // Fallback to current time
+              returnTimestamp = new Date();
+            }
+            
+            // Add a small buffer (30 seconds)
+            returnTimestamp.setSeconds(returnTimestamp.getSeconds() + 30);
+            
+            // Calculate estimated delivery time for return
+            const returnEstimatedDelivery = calculateEstimatedDeliveryTime(returnDuration, returnTimestamp);
+            
+            console.log(`Return to store order:`);
+            console.log(`  Created at: ${returnTimestamp.toISOString()}`);
+            console.log(`  Estimated delivery: ${returnEstimatedDelivery}`);
+            console.log(`  Duration: ${returnDuration}`);
+            
+            // Create the return order
+            const returnOrder = {
+              driverid: formData.driverid,
+              drivername: formData.drivername,
+              driveremail: formData.driveremail,
+              customerid: null,
+              customername: "Return to Store",
+              status: "confirmed",
+              payment_status: "completed",
+              payment_method: "monthly subscription",
+              start: formData.destination,
+              storeid: returnToStoreId,
+              destination: returnDestination,
+              distance: returnDistance,
+              time: returnDuration,
+              delivery_sequence: 2,  // Main order is 1, return is 2
+              total_amount: 0,
+              batch_id: batchId,
+              store_name: returnToStoreName,
+              is_return_to_store: true,
+              is_nearest_store: isNearestStore,
+              is_original_store: isOriginalStore,
+              return_option: returnOption,
+              created_at: returnTimestamp.toISOString(),
+              estimated_delivery_time: returnEstimatedDelivery
+            };
+            
+            orders.push(returnOrder);
+          }
+        } catch (error) {
+          console.error("Error calculating return route:", error);
+          // Just continue with the main order if return calculation fails
+        }
+      }
+
+      // Insert all orders (main order and potentially return order)
       const { data, error: orderError } = await supabase
         .from("orders")
-        .insert([orderData])
-        .select()
-        .single();
+        .insert(orders)
+        .select();
 
       if (orderError) throw orderError;
       
-      console.log("Order created successfully:", data);
+      console.log("Orders created successfully:", data);
+      
+      // If we created orders with a driver, also create a notification
+      if (formData.driverid) {
+        try {
+          const notifications = orders
+            .filter(order => !order.is_return_to_store) // Don't create notifications for return-to-store orders
+            .map((order, index) => ({
+              recipient_type: "driver",
+              recipient_id: formData.driverid,
+              title: "New Delivery Assignment",
+              message: `New delivery assigned from ${store.name} to ${
+                customer?.full_name || "customer"
+              }`,
+              type: "order",
+              delivery_attempted: false,
+            }));
+            
+          if (notifications.length > 0) {
+            const { error: notificationError } = await supabase
+              .from("notifications")
+              .insert(notifications);
+              
+            if (notificationError) {
+              console.error("Error creating notifications:", notificationError);
+            }
+          }
+        } catch (error) {
+          console.error("Error creating notifications:", error);
+          // Continue even if notification creation fails
+        }
+      }
+
+      // Show success message based on how many orders were created
+      if (orders.length > 1) {
+        alert(`Successfully created order to ${customer?.full_name} with a return to store order.`);
+      } else {
+        alert("Order created successfully!");
+      }
 
       router.push("/dashboard/orders");
     } catch (error) {
@@ -1108,6 +1346,91 @@ function NewOrderContent() {
                   rows={3}
                   placeholder="Add any special instructions for the delivery..."
                 />
+              </div>
+            </div>
+
+            {/* Return Options Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 border-b border-gray-200 pb-3">
+                <BuildingStorefrontIcon className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Return Options
+                </h2>
+              </div>
+
+              <div className="space-y-4 ml-6">
+                <div className="flex items-center">
+                  <input
+                    id="return-none"
+                    type="radio"
+                    name="return-option"
+                    value="none"
+                    checked={returnOption === "none"}
+                    onChange={() => {
+                      setReturnOption("none");
+                      setFormData(prev => ({
+                        ...prev,
+                        return_option: "none"
+                      }));
+                    }}
+                    className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <label htmlFor="return-none" className="ml-2 text-sm font-medium text-gray-700">
+                    No return (end route at last customer)
+                  </label>
+                </div>
+                
+                <div className="flex items-center">
+                  <input
+                    id="return-original"
+                    type="radio"
+                    name="return-option"
+                    value="original"
+                    checked={returnOption === "original"}
+                    onChange={() => {
+                      setReturnOption("original");
+                      setFormData(prev => ({
+                        ...prev,
+                        return_option: "original"
+                      }));
+                    }}
+                    className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <label htmlFor="return-original" className="ml-2 text-sm font-medium text-gray-700">
+                    Return to original store
+                  </label>
+                  {returnOption === "original" && (
+                    <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      Back to {stores.find(s => s.id === formData.storeid)?.name || "store"}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex items-center">
+                  <input
+                    id="return-nearest"
+                    type="radio"
+                    name="return-option"
+                    value="nearest"
+                    checked={returnOption === "nearest"}
+                    onChange={() => {
+                      setReturnOption("nearest");
+                      setFormData(prev => ({
+                        ...prev,
+                        return_option: "nearest"
+                      }));
+                    }}
+                    className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <label htmlFor="return-nearest" className="ml-2 text-sm font-medium text-gray-700">
+                    Return to nearest active store
+                  </label>
+                  {returnOption === "nearest" && (
+                    <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                      Finds closest store to delivery location
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
