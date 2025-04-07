@@ -18,6 +18,7 @@ import {
   PencilSquareIcon,
   XMarkIcon,
   CheckCircleIcon,
+  MapIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 
@@ -294,6 +295,19 @@ export default function ViewOrderPage({ params }) {
       failed: "bg-red-100 text-red-800",
     };
     return colors[status] || "bg-gray-100 text-gray-800";
+  };
+
+  // Function to open Google Maps with directions from pickup to delivery
+  const openInGoogleMaps = () => {
+    if (!order.start || !order.destination) return;
+    
+    // Create Google Maps directions URL
+    const origin = encodeURIComponent(order.start);
+    const destination = encodeURIComponent(order.destination);
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+    
+    // Open in a new tab
+    window.open(googleMapsUrl, '_blank');
   };
 
   if (loading) {
@@ -751,6 +765,13 @@ export default function ViewOrderPage({ params }) {
       title={`Order #${id}`}
       actions={
         <div className="flex items-center space-x-2">
+          <button
+            onClick={openInGoogleMaps}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          >
+            <MapIcon className="w-5 h-5 mr-2" />
+            View on Map
+          </button>
           <button
             onClick={() => setShowStatusModal(true)}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
