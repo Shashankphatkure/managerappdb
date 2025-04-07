@@ -93,7 +93,7 @@ export default function NewPaymentPage() {
         `
         )
         .eq("driverid", driverId)
-        .eq("status", "delivered")
+        .in("status", ["delivered", "cancelled"])
         .is("payment_processed", null);
 
       if (ordersError) throw ordersError;
@@ -482,6 +482,9 @@ export default function NewPaymentPage() {
                                 Distance
                               </th>
                               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Amount
                               </th>
                             </tr>
@@ -503,6 +506,17 @@ export default function NewPaymentPage() {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                   {order.distance} km
                                 </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span
+                                    className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                      order.status === "delivered"
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-red-100 text-red-800"
+                                    }`}
+                                  >
+                                    {order.status}
+                                  </span>
+                                </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                   ₹{order.total_amount}
                                 </td>
@@ -510,14 +524,14 @@ export default function NewPaymentPage() {
                             ))}
                             {unprocessedOrders.length === 0 && (
                               <tr>
-                                <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">
+                                <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
                                   No unprocessed orders found
                                 </td>
                               </tr>
                             )}
                             {unprocessedOrders.length > 0 && (
                               <tr className="bg-gray-100 font-medium">
-                                <td className="px-6 py-4 text-sm text-gray-700" colSpan="2">
+                                <td className="px-6 py-4 text-sm text-gray-700" colSpan="3">
                                   Total
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-700">
