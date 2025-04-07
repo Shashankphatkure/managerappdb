@@ -762,7 +762,7 @@ function MultiOrderContent() {
           distance: route.distance,
           time: route.duration,
           delivery_sequence: index + 1, // Use the new sequence position
-          total_amount: 20.0,
+          total_amount: 0,
           batch_id: batchId,
           store_name: selectedStore.name,
           return_option: returnOption,
