@@ -109,7 +109,7 @@ export default function ViewOrderPage({ params }) {
         .select(
           `
           *,
-          customers!orders_customerid_fkey (full_name, phone),
+          customers!orders_customerid_fkey (full_name, phone, floor, room_number, wing),
           users!fk_orders_driver (full_name, phone, vehicle_number, vehicle_type)
         `
         )
@@ -573,6 +573,31 @@ export default function ViewOrderPage({ params }) {
               <span className="flex-1">{order.destination}</span>
             </div>
           </div>
+          {(order.customers?.floor || order.customers?.room_number || order.customers?.wing) && (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-500">Location Details</p>
+              <div className="flex flex-col gap-1">
+                {order.customers?.floor && (
+                  <div className="flex items-center gap-2">
+                    <MapPinIcon className="w-4 h-4 text-gray-400" />
+                    <span>Floor: {order.customers.floor}</span>
+                  </div>
+                )}
+                {order.customers?.room_number && (
+                  <div className="flex items-center gap-2">
+                    <MapPinIcon className="w-4 h-4 text-gray-400" />
+                    <span>Room Number: {order.customers.room_number}</span>
+                  </div>
+                )}
+                {order.customers?.wing && (
+                  <div className="flex items-center gap-2">
+                    <MapPinIcon className="w-4 h-4 text-gray-400" />
+                    <span>Wing: {order.customers.wing}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           {order.delivery_notes && (
             <div className="space-y-2">
               <p className="text-sm text-gray-500">Delivery Notes</p>
