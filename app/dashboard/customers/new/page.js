@@ -31,6 +31,9 @@ function CustomerForm({ customerId, isEditMode }) {
     ordernote: "",
     subscriptiondays: "",
     subscriptionstart: "",
+    floor: "",
+    room_number: "",
+    wing: "",
   });
 
   useEffect(() => {
@@ -142,6 +145,27 @@ function CustomerForm({ customerId, isEditMode }) {
       type: "text",
       value: customer.city,
       onChange: (value) => setCustomer({ ...customer, city: value }),
+      icon: MapPinIcon,
+    },
+    {
+      label: "Floor",
+      type: "text",
+      value: customer.floor,
+      onChange: (value) => setCustomer({ ...customer, floor: value }),
+      icon: MapPinIcon,
+    },
+    {
+      label: "Room Number",
+      type: "text",
+      value: customer.room_number,
+      onChange: (value) => setCustomer({ ...customer, room_number: value }),
+      icon: MapPinIcon,
+    },
+    {
+      label: "Wing",
+      type: "text",
+      value: customer.wing,
+      onChange: (value) => setCustomer({ ...customer, wing: value }),
       icon: MapPinIcon,
     },
     {
