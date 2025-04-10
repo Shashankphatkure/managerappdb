@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@googlemaps/google-maps-services-js": "^3.4.1",
     "@heroicons/react": "^2.1.5",
     "@onesignal/node-onesignal": "^5.0.0-alpha-01",
     "@react-google-maps/api": "^2.20.3",
